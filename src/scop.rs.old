@@ -1,0 +1,98 @@
+use std::sync::Arc;
+
+use vulkano::VulkanLibrary;
+use vulkano::device::{
+    Device, DeviceCreateInfo, DeviceExtensions, Queue, QueueCreateInfo, QueueFlags,
+};
+use vulkano::instance::{Instance, InstanceCreateFlags, InstanceCreateInfo};
+use vulkano::swapchain::Surface;
+
+use winit::window::{self, Window};
+use winit::{dpi::LogicalSize, event_loop::EventLoop, window::WindowBuilder};
+
+pub struct ScopData {
+    event_loop: EventLoop<()>,
+    window:  Arc<Window>,
+    instance: Arc<vulkano::instance::Instance>,
+    device: Arc<Device>,
+    queue: Arc<Queue>,
+    surface: Arc<Surface>,
+}
+
+pub fn scop_init() -> ScopData {
+    let event_loop = init_event_loop();
+    let instance = init_instance(&event_loop);
+    let (device, queue) = init_device(&instance);
+    let window = init_window(&event_loop, "Scop", 200., 200.);
+    let surface = init_surface(&instance, &window);
+    ScopData {
+        event_loop,
+        window,
+        instance,
+        device,
+        queue,
+        surface,
+    }
+}
+
+fn init_event_loop() -> EventLoop<()> {
+    EventLoop::new()
+}
+
+fn init_window(event_loop: &EventLoop<()>, name: &str, width: f64, height: f64) -> Arc<Window> {
+    Arc::new(WindowBuilder::new()
+        .with_title(name)
+        .with_inner_size(LogicalSize::new(width, height))
+        .build(&event_loop)
+        .expect("can't build window"))
+}
+
+fn init_surface(instance: &Arc<vulkano::instance::Instance>, window: &Arc<Window>) -> Arc<Surface>
+{
+  Surface::from_window(instance.clone(), window.clone()).unwrap()
+}
+
+fn init_instance(event_loop: &EventLoop<()>) -> Arc<vulkano::instance::Instance> {
+    let library = vulkano::VulkanLibrary::new().expect("no local Vulkan library/DLL");
+    let required_extensions = Surface::required_extensions(&event_loop);
+    let instance = Instance::new(
+        library,
+        InstanceCreateInfo {
+            flags: InstanceCreateFlags::ENUMERATE_PORTABILITY,
+            enabled_extensions: required_extensions,
+            ..Default::default()
+        },
+    )
+    .expect("failed to create instance");
+    instance
+}
+
+fn init_device(instance: &Arc<vulkano::instance::Instance>) -> (Arc<Device>, Arc<Queue>) {
+    let physical_device = instance
+        .enumerate_physical_devices()
+        .expect("could not enumerate devices")
+        .next()
+        .expect("no devices available");
+    let queue_family_index = physical_device
+        .queue_family_properties()
+        .iter()
+        .position(|queue_family_properties| {
+            queue_family_properties
+                .queue_flags
+                .contains(QueueFlags::GRAPHICS)
+        })
+        .expect("couldn't find a graphical queue family") as u32;
+    let (device, mut queues) = Device::new(
+        physical_device,
+        DeviceCreateInfo {
+            // here we pass the desired queue family to use by index
+            queue_create_infos: vec![QueueCreateInfo {
+                queue_family_index,
+                ..Default::default()
+            }],
+            ..Default::default()
+        },
+    )
+    .expect("failed to create device");
+    (device, queues.next().unwrap())
+}
