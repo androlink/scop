@@ -1,22 +1,12 @@
+mod gl_wraper;
 mod shader;
 mod window;
-use crate::shader::load_shader;
+
+use gl_wraper::*;
+use std::time::Instant;
+
+use crate::shader::*;
 use sdl2::*;
-
-const VERT_SHADER: &str = r#"#version 330 core
-  layout (location = 0) in vec3 pos;
-  void main() {
-    gl_Position = vec4(pos.x, pos.y, pos.z, 1.0);
-  }
-"#;
-
-const FRAG_SHADER: &str = r#"#version 330 core
-  out vec4 final_color;
-
-  void main() {
-    final_color = vec4(1.0, 0.5, 0.2, 1.0);
-  }
-"#;
 
 fn main() {
     let sdl = sdl2::init().expect("not sdl ?");
@@ -28,35 +18,41 @@ fn main() {
 
     gl::load_with(|f_name| video.gl_get_proc_address(f_name) as *const _);
 
-    let win = window::get_window(&video).expect("no window ?");
+    let mut win = window::get_window(&video).expect("no window ?");
     let context = win.gl_create_context().expect("no context ?");
     win.gl_make_current(&context).expect("no gl_make_current ?");
 
     video
         .gl_set_swap_interval(video::SwapInterval::VSync)
         .expect("no vsync ?");
-    unsafe { gl::ClearColor(1., 1., 1., 1.) };
+    unsafe { gl::ClearColor(0., 0., 0., 1.) };
 
-    let mut vao: gl::types::GLuint = 0;
-    unsafe { gl::GenVertexArrays(1, &mut vao) };
-    assert_ne!(vao, 0);
-    let mut vbo: gl::types::GLuint = 0;
-    unsafe { gl::GenBuffers(1, &mut vbo) };
-    assert_ne!(vbo, 0);
-    unsafe { gl::BindBuffer(gl::ARRAY_BUFFER, vbo) };
-
+    type TriIndexes = [u32; 3];
     type Vertex = [f32; 3];
-    const VERTICES: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
+    const VERTICES: [Vertex; 4] = [
+        [0.5, 0.5, 0.0],
+        [0.5, -0.5, 0.0],
+        [-0.5, -0.5, 0.0],
+        [-0.5, 0.5, 0.0],
+    ];
+    const INDICES: [TriIndexes; 2] = [[0, 1, 3], [1, 2, 3]];
 
-    unsafe {
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            size_of_val(&VERTICES) as isize,
-            VERTICES.as_ptr().cast(),
-            gl::STATIC_DRAW,
-        )
-    };
-
+    let vao = VertexArray::new().expect("Couldn't make a VAO");
+    vao.bind();
+    let vbo = Buffer::new().expect("Couldn't make a VBO");
+    vbo.bind(BufferType::Array);
+    buffer_data(
+        BufferType::Array,
+        bytemuck::cast_slice(&VERTICES),
+        gl::STATIC_DRAW,
+    );
+    let ebo = Buffer::new().expect("no buffer?");
+    ebo.bind(BufferType::ElementArray);
+    buffer_data(
+        BufferType::ElementArray,
+        bytemuck::cast_slice(&INDICES),
+        gl::STATIC_DRAW,
+    );
     unsafe {
         gl::VertexAttribPointer(
             0,
@@ -68,10 +64,10 @@ fn main() {
         );
         gl::EnableVertexAttribArray(0);
     }
-    let vertex_shader =
-        load_shader(gl::VERTEX_SHADER, VERT_SHADER).expect("cannot load vertex shader");
-    let frag_shader =
-        load_shader(gl::FRAGMENT_SHADER, FRAG_SHADER).expect("cannot load fragment shader");
+    let vertex_shader = load_shader_file(gl::VERTEX_SHADER, "./shaders/vertex.glsl")
+        .expect("cannot load vertex shader");
+    let frag_shader = load_shader_file(gl::FRAGMENT_SHADER, "./shaders/fragment.glsl")
+        .expect("cannot load fragment shader");
 
     unsafe {
         let shader_program = gl::CreateProgram();
@@ -80,6 +76,7 @@ fn main() {
         gl::LinkProgram(shader_program);
     }
 
+    let mut avg = 0.;
     'main_loop: loop {
         // handle events this frame
         while let Some(ev) = event_pump.poll_event() {
@@ -88,11 +85,24 @@ fn main() {
                 _ => (),
             }
         }
+        let now = Instant::now();
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
         // now the events are clear
 
+        unsafe {
+            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as *const _);
+            // gl::DrawArrays(gl::TRIANGLES, 0, 3);
+        }
+
+        let elapsed_time = now.elapsed();
+        let time = 1000000000. / elapsed_time.as_nanos() as f32;
+        if avg == 0. {
+            avg = time
+        };
+        avg = (avg * 5000. + time) / 5001.;
+        let _ = win.set_title(format!("{} fps", avg.round()).as_str());
         // here's where we could change the world state and draw.
         win.gl_swap_window();
     }
