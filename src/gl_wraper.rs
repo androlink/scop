@@ -35,7 +35,7 @@ impl Buffer {
         unsafe { gl::BindBuffer(ty as gl::types::GLenum, self.0) }
     }
 
-    pub fn clear_binding(ty: BufferType) {
+    pub fn unbind(&self, ty: BufferType) {
         unsafe { gl::BindBuffer(ty as gl::types::GLenum, 0) }
     }
 }
@@ -49,4 +49,19 @@ pub fn buffer_data(ty: BufferType, data: &[u8], usage: gl::types::GLenum) {
             usage,
         );
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PolygonMode {
+    /// Just show the points.
+    Point = gl::POINT as isize,
+    /// Just show the lines.
+    Line = gl::LINE as isize,
+    /// Fill in the polygons.
+    Fill = gl::FILL as isize,
+}
+
+/// Sets the font and back polygon mode to the mode given.
+pub fn polygon_mode(mode: PolygonMode) {
+    unsafe { gl::PolygonMode(gl::FRONT_AND_BACK, mode as gl::types::GLenum) };
 }
