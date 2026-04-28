@@ -40,11 +40,14 @@ impl Buffer {
     }
 }
 
-pub fn buffer_data(ty: BufferType, data: &[u8], usage: gl::types::GLenum) {
+pub fn buffer_data<N>(ty: BufferType, data: &[N], usage: gl::types::GLenum)
+where
+    N: Sized,
+{
     unsafe {
         gl::BufferData(
             ty as gl::types::GLenum,
-            data.len().try_into().unwrap(),
+            (data.len() * size_of::<N>()).try_into().unwrap(),
             data.as_ptr().cast(),
             usage,
         );

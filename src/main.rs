@@ -1,12 +1,17 @@
 mod gl_wraper;
 mod program;
 mod shader;
+mod vertex;
 mod window;
 
 use gl_wraper::*;
 use std::time::Instant;
 
-use crate::{program::Program, shader::*};
+use crate::{
+    program::Program,
+    shader::*,
+    vertex::{VColor, VPosition, Vertex},
+};
 use sdl2::*;
 
 fn main() {
@@ -52,59 +57,52 @@ fn main() {
         .status()
         .unwrap()
         .detach_shader(&frag_shader)
-        .attach_shader(&vert_shader);
+        .detach_shader(&vert_shader);
 
     program.r#use();
 
-    let loc = unsafe { gl::GetUniformLocation(program.0, "transform".as_ptr().cast()) };
-    let transform = [
-        [1.0f32, 0.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0],
-        [0.0, 0.0, 0.0, 1.0],
-    ];
-
-    unsafe {
-        gl::UniformMatrix4fv(loc, 1, gl::FALSE, transform.as_ptr() as *const _);
-    }
-    let vertices: Vec<f32> = vec![
+    let vertices: Vec<Vertex> = vec![
         // positions      // colors
-        0.5, -0.5, 0.0, 1.0, 0.0, 0.0, // bottom right
-        -0.5, -0.5, 0.0, 0.0, 1.0, 0.0, // bottom left
-        0.0, 0.5, 0.0, 0.0, 0.0, 1.0, // top
+        Vertex(VPosition(0.5, -0.5, 0.0), VColor(1.0, 0.0, 0.0)), // bottom right
+        Vertex(VPosition(-0.5, -0.5, 0.0), VColor(0.0, 1.0, 0.0)), // bottom left
+        Vertex(VPosition(0.0, 0.5, 0.0), VColor(0.0, 0.0, 1.0)),  // top
     ];
-    let indices: Vec<u32> = vec![0, 1, 3];
+    let indices: Vec<u32> = vec![0, 1, 2];
 
     let vao = VertexArray::new().expect("Couldn't make a VAO");
     vao.bind();
     let vbo = Buffer::new().expect("Couldn't make a VBO");
     vbo.bind(BufferType::Array);
-    buffer_data(
-        BufferType::Array,
-        bytemuck::cast_slice(vertices.as_slice()),
-        gl::STATIC_DRAW,
-    );
+    buffer_data(BufferType::Array, vertices.as_slice(), gl::STATIC_DRAW);
 
     let ebo = Buffer::new().expect("no buffer?");
     ebo.bind(BufferType::ElementArray);
     buffer_data(
         BufferType::ElementArray,
-        bytemuck::cast_slice(indices.as_slice()),
+        indices.as_slice(),
         gl::STATIC_DRAW,
     );
     unsafe {
-        gl::EnableVertexAttribArray(0);
+        let loc = match gl::GetAttribLocation(program.0, "Position\0".as_ptr().cast()) {
+            n if n < 0 => panic!("no loc pos ?"),
+            n => n as u32,
+        };
+        gl::EnableVertexAttribArray(loc);
         gl::VertexAttribPointer(
-            0,
+            loc,
             3,
             gl::FLOAT,
             gl::FALSE,
             (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
             std::ptr::null(),
         );
-        gl::EnableVertexAttribArray(1);
+        let loc = match gl::GetAttribLocation(program.0, "Color\0".as_ptr().cast()) {
+            n if n < 0 => panic!("no loc col ?"),
+            n => n as u32,
+        };
+        gl::EnableVertexAttribArray(loc);
         gl::VertexAttribPointer(
-            1,
+            loc,
             3,
             gl::FLOAT,
             gl::FALSE,
@@ -112,6 +110,21 @@ fn main() {
             (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
         );
     }
+    let mvp_loc = match unsafe { gl::GetUniformLocation(program.0, "Mvp\0".as_ptr().cast()) } {
+        n if n < 0 => panic!("no loc MVP ?"),
+        n => n as i32,
+    };
+
+    let transform = [
+        [2.0f32, 0.0, 0.0, 0.0],
+        [0.0, 2.0, 0.0, 0.0],
+        [0.0, 0.0, 2.0, 0.0],
+        [1.0, 1.0, 1.0, 1.0],
+    ];
+
+    // unsafe {
+    //     gl::UniformMatrix4fv(loc, 1, gl::FALSE, transform.as_ptr() as *const _);
+    // }
 
     polygon_mode(PolygonMode::Fill);
     let mut avg = 0.;
@@ -130,9 +143,9 @@ fn main() {
         // now the events are clear
 
         unsafe {
-            //gl::UniformMatrix4fv(loc, 1, gl::FALSE, transform.as_ptr() as *const _);
-            // gl::DrawElements(gl::TRIANGLES, 3, gl::UNSIGNED_INT, 0 as *const _);
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::UniformMatrix4fv(mvp_loc, 1, gl::FALSE, transform.as_ptr() as *const _);
+            gl::DrawElements(gl::TRIANGLES, 3, gl::UNSIGNED_INT, 0 as *const _);
+            // gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
 
         let elapsed_time = now.elapsed();
@@ -140,7 +153,7 @@ fn main() {
         if avg == 0. {
             avg = time
         };
-        avg = (avg * 60. + time) / 61.;
+        avg = (avg * 100. + time) / 101.;
         let _ = win.set_title(format!("{} fps", avg.round()).as_str());
         // here's where we could change the world state and draw.
         win.gl_swap_window();
