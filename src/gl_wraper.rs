@@ -15,14 +15,13 @@ impl VertexArray {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BufferType {
-    Array = gl::ARRAY_BUFFER as isize,
-    ElementArray = gl::ELEMENT_ARRAY_BUFFER as isize,
-}
+pub use gl::ARRAY_BUFFER as Array;
+pub use gl::ELEMENT_ARRAY_BUFFER as Element_Array;
 
-pub struct Buffer(pub gl::types::GLuint);
-impl Buffer {
+pub use gl::types::GLenum as BufferType;
+
+pub struct Buffer<const BT: gl::types::GLenum>(pub gl::types::GLuint);
+impl<const BT: gl::types::GLenum> Buffer<BT> {
     pub fn new() -> Option<Self> {
         let mut vbo = 0;
         unsafe {
@@ -31,12 +30,25 @@ impl Buffer {
         if vbo != 0 { Some(Self(vbo)) } else { None }
     }
 
-    pub fn bind(&self, ty: BufferType) {
-        unsafe { gl::BindBuffer(ty as gl::types::GLenum, self.0) }
+    pub fn bind(&self) {
+        unsafe { gl::BindBuffer(BT, self.0) }
     }
 
-    pub fn unbind(&self, ty: BufferType) {
-        unsafe { gl::BindBuffer(ty as gl::types::GLenum, 0) }
+    pub fn unbind(&self) {
+        unsafe { gl::BindBuffer(BT, 0) }
+    }
+    pub fn data<N>(&self, data: &[N], usage: gl::types::GLenum)
+    where
+        N: Sized,
+    {
+        unsafe {
+            gl::BufferData(
+                BT as gl::types::GLenum,
+                (data.len() * size_of::<N>()).try_into().unwrap(),
+                data.as_ptr().cast(),
+                usage,
+            );
+        }
     }
 }
 

@@ -1,10 +1,16 @@
-pub struct VPosition(pub f32, pub f32, pub f32);
-pub struct VColor(pub f32, pub f32, pub f32);
+pub struct SPosition(pub f32, pub f32, pub f32);
+pub struct SColor(pub f32, pub f32, pub f32);
 
-pub struct Vertex(pub VPosition, pub VColor);
+pub struct SVertex(pub SPosition, pub SColor);
 
-impl Vertex {}
+pub struct SIndice(
+    pub gl::types::GLuint,
+    pub gl::types::GLuint,
+    pub gl::types::GLuint,
+);
 
-impl VPosition {}
+impl SVertex {}
 
-impl VColor {}
+impl SPosition {}
+
+impl SColor {}

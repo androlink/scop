@@ -1,4 +1,7 @@
-use std::{fs::File, io::Read};
+use std::{
+    fs::{File, read_to_string},
+    io::Read,
+};
 
 pub struct Shader(pub gl::types::GLuint);
 
@@ -28,13 +31,11 @@ impl Shader {
     }
     pub fn source_file(self, path: &str) -> Option<Self> {
         println!("loading shader {path}");
-        let mut file = match File::open(path) {
+        let file_content = match read_to_string(path) {
             Err(_) => return None,
             Ok(file) => file,
         };
-        let mut file_content = vec![];
-        file.read_to_end(&mut file_content).expect("no content ?");
-        Some(self.source(&file_content))
+        Some(self.source(file_content.as_bytes()))
     }
 
     pub fn compile(self) -> Self {
