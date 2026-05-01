@@ -1,14 +1,16 @@
 mod gl_wraper;
 mod object;
 mod program;
+mod scop_math;
 mod shader;
 mod vertex;
 mod window;
 
+use gl::NO_ERROR;
 use gl_wraper::*;
-use std::{ptr::null, time::Instant};
+use std::{ptr::null, thread::sleep, time::Instant};
 
-use crate::{object::OBJLoader, program::Program, shader::*, vertex::*};
+use crate::{object::OBJLoader, program::Program, scop_math::Matrix, shader::*, vertex::*};
 use sdl2::*;
 
 fn main() {
@@ -22,6 +24,7 @@ fn main() {
     gl::load_with(|f_name| video.gl_get_proc_address(f_name) as *const _);
 
     unsafe { gl::Viewport(0, 0, 800, 900) };
+    unsafe { gl::Enable(gl::DEPTH_TEST) };
     let mut win = window::get_window(&video).expect("no window ?");
     let context = win.gl_create_context().expect("no context ?");
     win.gl_make_current(&context).expect("no gl_make_current ?");
@@ -60,29 +63,22 @@ fn main() {
 
     let mut loader = OBJLoader::new();
     loader.path("./resources/");
-    let obj = loader.load("teapot.obj").expect("no object ?");
+    let obj = loader
+        .load(std::env::args().collect::<Vec<String>>()[1].as_str())
+        .expect("no object ?");
 
-    let vertices: Vec<SPosition> = vec![
-        // positions      // colors
-        SPosition(0.5, -0.5, 0.0),  // bottom right
-        SPosition(-0.5, -0.5, 0.0), // bottom left
-        SPosition(0.5, 0.5, 0.0),   // top
-        SPosition(-0.5, 0.5, 0.0),  // top
-    ];
-
-    let colors: Vec<SColor> = vec![
-        SColor(1.0, 0.0, 0.0),
-        SColor(0.0, 1.0, 0.0),
-        SColor(0.0, 0.0, 1.0),
-        SColor(0.0, 1.0, 1.0),
-    ];
-    let indices: Vec<SIndice> = vec![SIndice(0, 1, 2), SIndice(1, 2, 3)];
+    let colors: Vec<SColor> = obj
+        .get_verticles()
+        .iter()
+        .map(|_| SColor(rand::random(), rand::random(), rand::random()))
+        .collect();
+    // let indices: Vec<SIndice> = vec![SIndice(0, 1, 2), SIndice(1, 2, 3)];
 
     let vertex_array = VertexArray::new().expect("Couldn't make a VAO");
     vertex_array.bind();
     let vertex_buf: Buffer<Array> = Buffer::<Array>::new().expect("Couldn't make a VBO");
     vertex_buf.bind();
-    vertex_buf.data(vertices.as_slice(), gl::STATIC_DRAW);
+    vertex_buf.data(obj.get_verticles().as_slice(), gl::STATIC_DRAW);
 
     let color_buf: Buffer<Array> = Buffer::<Array>::new().expect("no colors ?");
     color_buf.bind();
@@ -90,7 +86,7 @@ fn main() {
 
     let indice_buf: Buffer<Element_Array> = Buffer::<Element_Array>::new().expect("no buffer?");
     indice_buf.bind();
-    indice_buf.data(indices.as_slice(), gl::STATIC_DRAW);
+    indice_buf.data(obj.get_vertex_face().as_slice(), gl::STATIC_DRAW);
 
     unsafe {
         vertex_buf.bind();
@@ -101,7 +97,7 @@ fn main() {
         gl::EnableVertexAttribArray(loc);
         gl::VertexAttribPointer(
             loc,
-            3,
+            4,
             gl::FLOAT,
             gl::FALSE,
             0 as gl::types::GLint,
@@ -120,18 +116,13 @@ fn main() {
         n => n as i32,
     };
 
-    let transform = [
-        [2.0f32, 0.0, 0.0, 0.0],
-        [0.0, 2.0, 0.0, 0.0],
-        [0.0, 0.0, 2.0, 0.0],
-        [0.0, 0.0, 0.0, 1.0],
-    ];
-
     // unsafe {
     //     gl::UniformMatrix4fv(loc, 1, gl::FALSE, transform.as_ptr() as *const _);
     // }
 
-    polygon_mode(PolygonMode::Fill);
+    let mut scale_loop = (1..10).cycle();
+    let mut translate_loop = (-100..100).cycle();
+    polygon_mode(PolygonMode::Line);
     let mut avg = 0.;
     'main_loop: loop {
         // handle events this frame
@@ -143,14 +134,33 @@ fn main() {
         }
         let now = Instant::now();
         unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
-        // now the events are clear
+        let transform = Matrix::ident();
+        let projection = Matrix::perspective(45., 900. / 800., 0.001, 1000.);
+        let transform = transform.scale(scale_loop.next().expect("no cycle ?") as f32);
+        let transform = transform.translate(
+            0.,
+            -100.,
+            translate_loop.next().expect("no translate ?") as f32,
+        );
 
+        let mvp = projection * transform;
+
+        // now the events are clear
         unsafe {
-            gl::UniformMatrix4fv(mvp_loc, 1, gl::FALSE, transform.as_ptr() as *const _);
+            gl::UniformMatrix4fv(mvp_loc, 1, gl::FALSE, mvp.data.as_ptr() as *const _);
             indice_buf.bind();
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, 0 as *const _);
+            gl::DrawElements(
+                gl::TRIANGLES,
+                1 * obj.get_vertex_face().len() as gl::types::GLsizei,
+                gl::UNSIGNED_INT,
+                0 as *const _,
+            );
+            let val = gl::GetError();
+            if val != gl::NO_ERROR {
+                println!("gl error {}", val);
+            }
             // gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
 
