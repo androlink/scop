@@ -13,6 +13,11 @@ impl VertexArray {
     pub fn clear_binding() {
         unsafe { gl::BindVertexArray(0) }
     }
+
+    pub fn draw(&self, mode: gl::types::GLenum, count: gl::types::GLsizei) {
+        self.bind();
+        unsafe { gl::DrawArrays(mode, 0, count) }
+    }
 }
 
 pub use gl::ARRAY_BUFFER as Array;
@@ -30,14 +35,15 @@ impl<const BT: gl::types::GLenum> Buffer<BT> {
         if vbo != 0 { Some(Self(vbo)) } else { None }
     }
 
-    pub fn bind(&self) {
-        unsafe { gl::BindBuffer(BT, self.0) }
+    pub fn bind(&self) -> &Self {
+        unsafe { gl::BindBuffer(BT, self.0) };
+        self
     }
 
     pub fn unbind(&self) {
         unsafe { gl::BindBuffer(BT, 0) }
     }
-    pub fn data<N>(&self, data: &[N], usage: gl::types::GLenum)
+    pub fn data<N>(&self, data: &[N], usage: gl::types::GLenum) -> &Self
     where
         N: Sized,
     {
@@ -48,7 +54,13 @@ impl<const BT: gl::types::GLenum> Buffer<BT> {
                 data.as_ptr().cast(),
                 usage,
             );
-        }
+        };
+        self
+    }
+
+    pub fn draw(&self, mode: gl::types::GLenum, count: gl::types::GLsizei) {
+        self.bind();
+        unsafe { gl::DrawElements(mode, 3 * count, gl::UNSIGNED_INT, 0 as *const _) }
     }
 }
 

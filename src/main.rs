@@ -1,16 +1,19 @@
 mod gl_wraper;
 mod object;
 mod program;
-mod scop_math;
+mod scop_mat4;
 mod shader;
 mod vertex;
 mod window;
 
-use gl::NO_ERROR;
 use gl_wraper::*;
-use std::{ptr::null, thread::sleep, time::Instant};
+use std::{
+    ptr::null,
+    thread::sleep,
+    time::{Duration, Instant},
+};
 
-use crate::{object::OBJLoader, program::Program, scop_math::Matrix, shader::*, vertex::*};
+use crate::{object::OBJLoader, program::Program, scop_mat4::Matrix4, shader::*, vertex::*};
 use sdl2::*;
 
 fn main() {
@@ -23,8 +26,6 @@ fn main() {
 
     gl::load_with(|f_name| video.gl_get_proc_address(f_name) as *const _);
 
-    unsafe { gl::Viewport(0, 0, 800, 900) };
-    unsafe { gl::Enable(gl::DEPTH_TEST) };
     let mut win = window::get_window(&video).expect("no window ?");
     let context = win.gl_create_context().expect("no context ?");
     win.gl_make_current(&context).expect("no gl_make_current ?");
@@ -33,6 +34,14 @@ fn main() {
         .gl_set_swap_interval(video::SwapInterval::VSync)
         .expect("no vsync ?");
     unsafe { gl::ClearColor(0.3, 0.3, 0.3, 1.) };
+
+    unsafe { gl::Viewport(0, 0, 800, 900) };
+    unsafe { gl::Enable(gl::DEPTH_TEST) };
+    unsafe { gl::Enable(gl::DEPTH_CLAMP) };
+    unsafe { gl::Enable(gl::CULL_FACE) };
+    unsafe { gl::CullFace(gl::BACK) };
+    unsafe { gl::FrontFace(gl::CW) };
+    unsafe { gl::DepthFunc(gl::LESS) };
 
     let frag_shader = Shader::new(gl::FRAGMENT_SHADER)
         .expect("no shader ?")
@@ -67,10 +76,18 @@ fn main() {
         .load(std::env::args().collect::<Vec<String>>()[1].as_str())
         .expect("no object ?");
 
+    // println!("{:#?}", obj);
+    rand::random::<f32>();
     let colors: Vec<SColor> = obj
         .get_verticles()
         .iter()
-        .map(|_| SColor(rand::random(), rand::random(), rand::random()))
+        .map(|_| {
+            SColor(
+                rand::random::<f32>(),
+                rand::random::<f32>(),
+                rand::random::<f32>(),
+            )
+        })
         .collect();
     // let indices: Vec<SIndice> = vec![SIndice(0, 1, 2), SIndice(1, 2, 3)];
 
@@ -86,29 +103,28 @@ fn main() {
 
     let indice_buf: Buffer<Element_Array> = Buffer::<Element_Array>::new().expect("no buffer?");
     indice_buf.bind();
-    indice_buf.data(obj.get_vertex_face().as_slice(), gl::STATIC_DRAW);
+    indice_buf.data(obj.get_vertex_indices().as_slice(), gl::STATIC_DRAW);
 
     unsafe {
+        let pos_loc = program
+            .get_attribute_location(c"Position")
+            .expect("position not found");
+
+        gl::EnableVertexAttribArray(pos_loc);
         vertex_buf.bind();
-        let loc = match gl::GetAttribLocation(program.0, "Position\0".as_ptr().cast()) {
-            n if n < 0 => panic!("no loc pos ?"),
-            n => n as u32,
-        };
-        gl::EnableVertexAttribArray(loc);
         gl::VertexAttribPointer(
-            loc,
+            pos_loc,
             4,
             gl::FLOAT,
             gl::FALSE,
             0 as gl::types::GLint,
             std::ptr::null(),
         );
-        color_buf.bind();
-        let loc = match gl::GetAttribLocation(program.0, "Color\0".as_ptr().cast()) {
-            n if n < 0 => panic!("no loc col ?"),
-            n => n as u32,
-        };
+        let loc = program
+            .get_attribute_location(c"Color")
+            .expect("color not found");
         gl::EnableVertexAttribArray(loc);
+        color_buf.bind();
         gl::VertexAttribPointer(loc, 3, gl::FLOAT, gl::FALSE, 0 as gl::types::GLint, null());
     }
     let mvp_loc = match unsafe { gl::GetUniformLocation(program.0, "Mvp\0".as_ptr().cast()) } {
@@ -116,14 +132,12 @@ fn main() {
         n => n as i32,
     };
 
-    // unsafe {
-    //     gl::UniformMatrix4fv(loc, 1, gl::FALSE, transform.as_ptr() as *const _);
-    // }
+    let mut scale_loop = (1..100).cycle();
+    let mut translate_z_loop = (10..100).cycle();
+    let mut teta_y_loop = (0..200).cycle();
+    let mut translate_y_loop = (-100..100).cycle();
 
-    let mut scale_loop = (1..10).cycle();
-    let mut translate_loop = (-100..100).cycle();
-    polygon_mode(PolygonMode::Line);
-    let mut avg = 0.;
+    polygon_mode(PolygonMode::Fill);
     'main_loop: loop {
         // handle events this frame
         while let Some(ev) = event_pump.poll_event() {
@@ -133,45 +147,49 @@ fn main() {
             }
         }
         let now = Instant::now();
-        unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-        }
-        let transform = Matrix::ident();
-        let projection = Matrix::perspective(45., 900. / 800., 0.001, 1000.);
-        let transform = transform.scale(scale_loop.next().expect("no cycle ?") as f32);
-        let transform = transform.translate(
-            0.,
-            -100.,
-            translate_loop.next().expect("no translate ?") as f32,
+        unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
+        let model = Matrix4::ident();
+        let translate = Matrix4::translate(0., 0., 0.);
+        let rot = Matrix4::rotate_y((teta_y_loop.next().unwrap() as f32 / 200.) * 3.14149 * 2.);
+        let scale = Matrix4::scale(2.);
+        let model = translate * model;
+        let model = rot * model;
+        let model = scale * model;
+        let projection = Matrix4::perspective(90., 900. / 800., 0.1, 1000.);
+        let view = Matrix4::look_at(
+            &(100., -10., 100.).into(),
+            &(0., 0., 0.).into(),
+            &(0., 1., 0.).into(),
         );
+        // let transform = transform.translate(
+        //     0.,
+        //     translate_y_loop.next().expect("no translate ?") as f32,
+        //     translate_z_loop.next().expect("no translate ?") as f32,
+        // );
 
-        let mvp = projection * transform;
+        let mvp = model * view * projection;
 
         // now the events are clear
         unsafe {
             gl::UniformMatrix4fv(mvp_loc, 1, gl::FALSE, mvp.data.as_ptr() as *const _);
-            indice_buf.bind();
-            gl::DrawElements(
-                gl::TRIANGLES,
-                1 * obj.get_vertex_face().len() as gl::types::GLsizei,
-                gl::UNSIGNED_INT,
-                0 as *const _,
-            );
+            // indice_buf.draw(gl::TRIANGLES, obj.get_vertex_face().len() as i32);
+
+            // vertex_array.draw(gl::TRIANGLES, obj.get_verticles().len() as i32);
+            //
+            polygon_mode(PolygonMode::Fill);
+            indice_buf.draw(gl::TRIANGLES, obj.get_vertex_indices().len() as i32);
+
             let val = gl::GetError();
             if val != gl::NO_ERROR {
                 println!("gl error {}", val);
             }
-            // gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
 
         let elapsed_time = now.elapsed();
-        let time = 1000000000. / elapsed_time.as_nanos() as f32;
-        if avg == 0. {
-            avg = time
-        };
-        avg = (avg * 100. + time) / 101.;
-        let _ = win.set_title(format!("{} fps", avg.round()).as_str());
+        let time = elapsed_time.as_micros() as f32;
+        let _ = win.set_title(format!("{} us per frame", time.to_string()).as_str());
         // here's where we could change the world state and draw.
+        sleep(elapsed_time.abs_diff(Duration::from_millis(((1. / 30.) * 1000.) as u64)));
         win.gl_swap_window();
     }
 }

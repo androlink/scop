@@ -1,6 +1,7 @@
 use std::{
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Read},
+    time::Instant,
 };
 
 use crate::vertex::{SIndice, SNormal, STexture, SVertex};
@@ -10,9 +11,9 @@ pub struct SObject {
     verticles: Vec<SVertex>,
     uvs: Vec<STexture>,
     normals: Vec<SNormal>,
-    verticle_faces: Vec<SIndice>,
-    normal_faces: Vec<SIndice>,
-    texture_face: Vec<SIndice>,
+    vertex_indices: Vec<SIndice>,
+    normal_indices: Vec<SIndice>,
+    texture_indices: Vec<SIndice>,
 }
 
 impl SObject {
@@ -28,24 +29,24 @@ impl SObject {
             verticles,
             uvs,
             normals,
-            verticle_faces: v_faces,
-            texture_face: t_faces,
-            normal_faces: n_faces,
+            vertex_indices: v_faces,
+            texture_indices: t_faces,
+            normal_indices: n_faces,
         }
     }
 }
 
 impl SObject {
-    pub fn get_vertex_face(&self) -> &Vec<SIndice> {
-        &self.verticle_faces
+    pub fn get_vertex_indices(&self) -> &Vec<SIndice> {
+        &self.vertex_indices
     }
 
-    pub fn get_normal_faces(&self) -> &Vec<SIndice> {
-        &self.normal_faces
+    pub fn get_normal_indices(&self) -> &Vec<SIndice> {
+        &self.normal_indices
     }
 
-    pub fn get_texture_face(&self) -> &Vec<SIndice> {
-        &self.texture_face
+    pub fn get_texture_indices(&self) -> &Vec<SIndice> {
+        &self.texture_indices
     }
 
     pub fn get_verticles(&self) -> &Vec<SVertex> {
@@ -66,6 +67,8 @@ pub enum OBJError {
     Io(std::io::Error, String),
     Vertex(String),
     Face(String),
+    Parse(String),
+    NotEnoughtArg(String),
 }
 
 impl OBJLoader {
@@ -79,15 +82,23 @@ impl OBJLoader {
         self.path = path.to_string();
         self
     }
-    fn parse_vertex(args: &Vec<&str>) -> Result<SVertex, ()> {
+    fn parse_vertex(args: &Vec<&str>) -> Result<SVertex, OBJError> {
         if (args.len() < 3 || args.len() > 4) {
-            return Err(());
+            return Err(OBJError::NotEnoughtArg("parse_vertex".to_string()));
         }
-        let x: f32 = args[0].parse::<f32>().map_err(|_| ())?;
-        let y: f32 = args[1].parse::<f32>().map_err(|_| ())?;
-        let z: f32 = args[2].parse::<f32>().map_err(|_| ())?;
+        let x: f32 = args[0]
+            .parse::<f32>()
+            .map_err(|e| OBJError::Parse(format!("parse_vertex: {e}").to_string()))?;
+        let y: f32 = args[1]
+            .parse::<f32>()
+            .map_err(|e| OBJError::Parse(format!("parse_vertex: {e}").to_string()))?;
+        let z: f32 = args[2]
+            .parse::<f32>()
+            .map_err(|e| OBJError::Parse(format!("parse_vertex: {e}").to_string()))?;
         let w: f32 = if (args.len() == 4) {
-            args[0].parse::<f32>().map_err(|_| ())?
+            args[4]
+                .parse::<f32>()
+                .map_err(|e| OBJError::Parse(format!("parse_vertex: {e}").to_string()))?
         } else {
             1.
         };
@@ -95,30 +106,42 @@ impl OBJLoader {
         Ok(SVertex::new_xyzw(x, y, z, w))
     }
 
-    fn parse_vertex_normal(args: &Vec<&str>) -> Result<SNormal, ()> {
-        if (args.len() != 3) {
-            return Err(());
+    fn parse_vertex_normal(args: &Vec<&str>) -> Result<SNormal, OBJError> {
+        if args.len() != 3 {
+            return Err(OBJError::NotEnoughtArg("parse_vertex_normal".to_string()));
         }
-        let x: f32 = args[0].parse::<f32>().map_err(|_| ())?;
-        let y: f32 = args[1].parse::<f32>().map_err(|_| ())?;
-        let z: f32 = args[2].parse::<f32>().map_err(|_| ())?;
+        let x: f32 = args[0]
+            .parse::<f32>()
+            .map_err(|e| OBJError::Parse(format!("parse_vertex_normal: {e}").to_string()))?;
+        let y: f32 = args[1]
+            .parse::<f32>()
+            .map_err(|e| OBJError::Parse(format!("parse_vertex_normal: {e}").to_string()))?;
+        let z: f32 = args[2]
+            .parse::<f32>()
+            .map_err(|e| OBJError::Parse(format!("parse_vertex_normal: {e}").to_string()))?;
 
         Ok(SNormal::new(x, y, z))
     }
 
-    fn parse_vertex_texture(args: &Vec<&str>) -> Result<STexture, ()> {
-        if (args.len() < 3 || args.len() > 4) {
-            return Err(());
+    fn parse_vertex_texture(args: &Vec<&str>) -> Result<STexture, OBJError> {
+        if args.len() < 2 {
+            return Err(OBJError::NotEnoughtArg("parse_vertex_texture".to_string()));
         }
-        let x: f32 = args[0].parse::<f32>().map_err(|_| ())?;
-        let y: f32 = args[1].parse::<f32>().map_err(|_| ())?;
+        let x: f32 = args[0]
+            .parse::<f32>()
+            .map_err(|e| OBJError::Parse(format!("parse_face: {e}").to_string()))?;
+        let y: f32 = args[1]
+            .parse::<f32>()
+            .map_err(|e| OBJError::Parse(format!("parse_face: {e}").to_string()))?;
 
         Ok(STexture::new(x, y))
     }
 
-    fn parse_face(args: &Vec<&str>) -> Result<(Vec<SIndice>, Vec<SIndice>, Vec<SIndice>), ()> {
+    fn parse_face(
+        args: &Vec<&str>,
+    ) -> Result<(Vec<SIndice>, Vec<SIndice>, Vec<SIndice>), OBJError> {
         if args.len() < 3 {
-            return Err(());
+            return Err(OBJError::NotEnoughtArg("parse_face".to_string()));
         }
         let mut v_indices = Vec::new();
         let mut t_indices = Vec::new();
@@ -126,25 +149,65 @@ impl OBJLoader {
         for v in args.iter() {
             let v = v;
             let verticles: Vec<&str> = v.split('/').collect();
-            let v_index = verticles[0].parse::<u32>().map_err(|_| ())?;
-            let t_index = verticles[0].parse::<u32>().map_err(|_| ())?;
-            let n_index = verticles[0].parse::<u32>().map_err(|_| ())?;
+            let v_index = if verticles[0].len() > 0 {
+                verticles[0]
+                    .parse::<u32>()
+                    .map_err(|e| OBJError::Parse(format!("parse_face: {e}").to_string()))?
+                    - 1
+            } else {
+                0
+            };
+            let t_index = if verticles.len() > 1 && verticles[1].len() > 0 {
+                verticles[1]
+                    .parse::<u32>()
+                    .map_err(|e| OBJError::Parse(format!("parse_face: {e}").to_string()))?
+                    - 1
+            } else {
+                0
+            };
+            let n_index = if verticles.len() > 2 && verticles[2].len() > 0 {
+                verticles[2]
+                    .parse::<u32>()
+                    .map_err(|e| OBJError::Parse(format!("parse_face: {e}").to_string()))?
+                    - 1
+            } else {
+                0
+            };
             v_indices.push(v_index);
             t_indices.push(t_index);
             n_indices.push(n_index);
         }
-        let face_v_indices = SIndice(v_indices[0], v_indices[1], v_indices[2]);
-        let face_t_indices = SIndice(t_indices[0], t_indices[1], t_indices[2]);
-        let face_n_indices = SIndice(n_indices[0], n_indices[1], n_indices[2]);
 
-        Ok((
-            vec![face_v_indices],
-            vec![face_t_indices],
-            vec![face_n_indices],
-        ))
+        let mut face_v_indices = Vec::<SIndice>::new();
+        let mut face_t_indices = Vec::<SIndice>::new();
+        let mut face_n_indices = Vec::<SIndice>::new();
+
+        for i in (0..v_indices.len()).step_by(2) {
+            face_v_indices.push(SIndice(
+                v_indices[i],
+                v_indices[(1 + i) % v_indices.len()],
+                v_indices[(2 + i) % v_indices.len()],
+            ));
+            face_t_indices.push(SIndice(
+                t_indices[i],
+                t_indices[(1 + i) % t_indices.len()],
+                t_indices[(2 + i) % t_indices.len()],
+            ));
+            face_n_indices.push(SIndice(
+                n_indices[i],
+                n_indices[(1 + i) % n_indices.len()],
+                n_indices[(2 + i) % n_indices.len()],
+            ));
+        }
+        // let face_v_indice = SIndice(v_indices[0], v_indices[1], v_indices[2]);
+        // let face_t_indice = SIndice(t_indices[0], t_indices[1], t_indices[2]);
+        // let face_n_indice = SIndice(n_indices[0], n_indices[1], n_indices[2]);
+
+        Ok((face_v_indices, face_t_indices, face_n_indices))
     }
 
     pub fn load(&self, obj_file: &str) -> Result<SObject, OBJError> {
+        let start = Instant::now();
         let mut verticles: Vec<SVertex> = Vec::new();
         let mut uvs: Vec<STexture> = Vec::new();
         let mut normals: Vec<SNormal> = Vec::new();
@@ -162,22 +225,22 @@ impl OBJLoader {
                 match id {
                     "v" => {
                         let vertex = Self::parse_vertex(&args_it.collect())
-                            .map_err(|_| OBJError::Vertex("lol".to_string()))?;
+                            .map_err(|e| OBJError::Vertex(format!("load: {e:?}").to_string()))?;
                         verticles.push(vertex);
                     }
-                    "vf" => {
+                    "vn" => {
                         let normal = Self::parse_vertex_normal(&args_it.collect())
-                            .map_err(|_| OBJError::Vertex("lol".to_string()))?;
+                            .map_err(|e| OBJError::Vertex(format!("load: {e:?}").to_string()))?;
                         normals.push(normal);
                     }
-                    "vn" => {
+                    "vt" => {
                         let texture = Self::parse_vertex_texture(&args_it.collect())
-                            .map_err(|_| OBJError::Vertex("lol".to_string()))?;
+                            .map_err(|e| OBJError::Vertex(format!("load: {e:?}").to_string()))?;
                         uvs.push(texture);
                     }
                     "f" => {
                         let mut face = Self::parse_face(&args_it.collect())
-                            .map_err(|_| OBJError::Face("lol".to_string()))?;
+                            .map_err(|e| OBJError::Vertex(format!("load: {e:?}").to_string()))?;
                         v_faces.append(&mut face.0);
                         t_faces.append(&mut face.1);
                         n_faces.append(&mut face.2);
@@ -187,6 +250,8 @@ impl OBJLoader {
                 }
             }
         }
+        let stop = start.elapsed().as_millis();
+        println!("obj load in {} seconde", stop as f32 / 1000.);
         Ok(SObject::new(
             verticles, uvs, normals, v_faces, t_faces, n_faces,
         ))

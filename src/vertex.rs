@@ -35,6 +35,7 @@ impl STexture {
 
 #[derive(Debug)]
 pub struct SColor(pub f32, pub f32, pub f32);
+
 #[derive(Debug)]
 pub struct SIndice(
     pub gl::types::GLuint,

@@ -1,3 +1,5 @@
+use std::ffi::{CStr, CString};
+
 use crate::shader::Shader;
 
 pub struct Program(pub gl::types::GLuint);
@@ -54,6 +56,15 @@ impl Program {
             return Err(String::from_utf8_lossy(buf.as_slice()).to_string());
         }
         Ok(self)
+    }
+
+    pub fn get_attribute_location(&self, name: &CStr) -> Option<gl::types::GLuint> {
+        let loc = unsafe { gl::GetAttribLocation(self.0, name.as_ptr()) };
+        if loc < 0 {
+            None
+        } else {
+            Some(loc as gl::types::GLuint)
+        }
     }
 
     pub fn delete(&self) {
