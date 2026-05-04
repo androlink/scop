@@ -1,25 +1,3 @@
-pub struct VertexArray(pub gl::types::GLuint);
-impl VertexArray {
-    pub fn new() -> Option<Self> {
-        let mut vao = 0;
-        unsafe { gl::GenVertexArrays(1, &mut vao) };
-        if vao != 0 { Some(Self(vao)) } else { None }
-    }
-
-    pub fn bind(&self) {
-        unsafe { gl::BindVertexArray(self.0) }
-    }
-
-    pub fn clear_binding() {
-        unsafe { gl::BindVertexArray(0) }
-    }
-
-    pub fn draw(&self, mode: gl::types::GLenum, count: gl::types::GLsizei) {
-        self.bind();
-        unsafe { gl::DrawArrays(mode, 0, count) }
-    }
-}
-
 pub use gl::ARRAY_BUFFER as Array;
 pub use gl::ELEMENT_ARRAY_BUFFER as Element_Array;
 
@@ -47,6 +25,7 @@ impl<const BT: gl::types::GLenum> Buffer<BT> {
     where
         N: Sized,
     {
+        self.bind();
         unsafe {
             gl::BufferData(
                 BT as gl::types::GLenum,
@@ -64,6 +43,12 @@ impl<const BT: gl::types::GLenum> Buffer<BT> {
     }
 }
 
+impl<const BT: gl::types::GLenum> Drop for Buffer<BT> {
+    fn drop(&mut self) {
+        unsafe { gl::DeleteBuffers(1, &self.0) };
+    }
+}
+
 pub fn buffer_data<N>(ty: BufferType, data: &[N], usage: gl::types::GLenum)
 where
     N: Sized,
@@ -76,19 +61,4 @@ where
             usage,
         );
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PolygonMode {
-    /// Just show the points.
-    Point = gl::POINT as isize,
-    /// Just show the lines.
-    Line = gl::LINE as isize,
-    /// Fill in the polygons.
-    Fill = gl::FILL as isize,
-}
-
-/// Sets the font and back polygon mode to the mode given.
-pub fn polygon_mode(mode: PolygonMode) {
-    unsafe { gl::PolygonMode(gl::FRONT_AND_BACK, mode as gl::types::GLenum) };
 }

@@ -182,19 +182,19 @@ impl OBJLoader {
         let mut face_t_indices = Vec::<SIndice>::new();
         let mut face_n_indices = Vec::<SIndice>::new();
 
-        for i in (0..v_indices.len()).step_by(2) {
+        for i in 0..(v_indices.len() - 2) {
             face_v_indices.push(SIndice(
-                v_indices[i],
+                v_indices[0],
                 v_indices[(1 + i) % v_indices.len()],
                 v_indices[(2 + i) % v_indices.len()],
             ));
             face_t_indices.push(SIndice(
-                t_indices[i],
+                t_indices[0],
                 t_indices[(1 + i) % t_indices.len()],
                 t_indices[(2 + i) % t_indices.len()],
             ));
             face_n_indices.push(SIndice(
-                n_indices[i],
+                n_indices[0],
                 n_indices[(1 + i) % n_indices.len()],
                 n_indices[(2 + i) % n_indices.len()],
             ));

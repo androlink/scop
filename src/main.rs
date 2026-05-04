@@ -1,6 +1,5 @@
 mod gl_wraper;
-mod object;
-mod program;
+mod obj;
 mod scop_mat4;
 mod shader;
 mod vertex;
@@ -13,7 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{object::OBJLoader, program::Program, scop_mat4::Matrix4, shader::*, vertex::*};
+use crate::{Program, obj::OBJLoader, scop_mat4::Matrix4, shader::*, vertex::*};
 use sdl2::*;
 
 fn main() {
@@ -94,22 +93,18 @@ fn main() {
     let vertex_array = VertexArray::new().expect("Couldn't make a VAO");
     vertex_array.bind();
     let vertex_buf: Buffer<Array> = Buffer::<Array>::new().expect("Couldn't make a VBO");
-    vertex_buf.bind();
     vertex_buf.data(obj.get_verticles().as_slice(), gl::STATIC_DRAW);
 
     let color_buf: Buffer<Array> = Buffer::<Array>::new().expect("no colors ?");
-    color_buf.bind();
     color_buf.data(colors.as_slice(), gl::STATIC_DRAW);
 
     let indice_buf: Buffer<Element_Array> = Buffer::<Element_Array>::new().expect("no buffer?");
-    indice_buf.bind();
     indice_buf.data(obj.get_vertex_indices().as_slice(), gl::STATIC_DRAW);
 
     unsafe {
         let pos_loc = program
             .get_attribute_location(c"Position")
             .expect("position not found");
-
         gl::EnableVertexAttribArray(pos_loc);
         vertex_buf.bind();
         gl::VertexAttribPointer(
@@ -157,7 +152,7 @@ fn main() {
         let model = scale * model;
         let projection = Matrix4::perspective(90., 900. / 800., 0.1, 1000.);
         let view = Matrix4::look_at(
-            &(100., -10., 100.).into(),
+            &(10., -10., 10.).into(),
             &(0., 0., 0.).into(),
             &(0., 1., 0.).into(),
         );
