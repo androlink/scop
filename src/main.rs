@@ -1,18 +1,17 @@
 mod gl_wraper;
+mod mat4;
 mod obj;
-mod scop_mat4;
 mod shader;
 mod vertex;
 mod window;
 
 use gl_wraper::*;
 use std::{
-    ptr::null,
     thread::sleep,
     time::{Duration, Instant},
 };
 
-use crate::{Program, obj::OBJLoader, scop_mat4::Matrix4, shader::*, vertex::*};
+use crate::{Program, mat4::Matrix4, obj::OBJLoader, shader::*, vertex::*};
 use sdl2::*;
 
 fn main() {
@@ -39,7 +38,7 @@ fn main() {
     unsafe { gl::Enable(gl::DEPTH_CLAMP) };
     unsafe { gl::Enable(gl::CULL_FACE) };
     unsafe { gl::CullFace(gl::BACK) };
-    unsafe { gl::FrontFace(gl::CW) };
+    unsafe { gl::FrontFace(gl::CCW) };
     unsafe { gl::DepthFunc(gl::LESS) };
 
     let frag_shader = Shader::new(gl::FRAGMENT_SHADER)
@@ -101,31 +100,18 @@ fn main() {
     let indice_buf: Buffer<Element_Array> = Buffer::<Element_Array>::new().expect("no buffer?");
     indice_buf.data(obj.get_vertex_indices().as_slice(), gl::STATIC_DRAW);
 
-    unsafe {
-        let pos_loc = program
-            .get_attribute_location(c"Position")
-            .expect("position not found");
-        gl::EnableVertexAttribArray(pos_loc);
-        vertex_buf.bind();
-        gl::VertexAttribPointer(
-            pos_loc,
-            4,
-            gl::FLOAT,
-            gl::FALSE,
-            0 as gl::types::GLint,
-            std::ptr::null(),
-        );
-        let loc = program
-            .get_attribute_location(c"Color")
-            .expect("color not found");
-        gl::EnableVertexAttribArray(loc);
-        color_buf.bind();
-        gl::VertexAttribPointer(loc, 3, gl::FLOAT, gl::FALSE, 0 as gl::types::GLint, null());
-    }
-    let mvp_loc = match unsafe { gl::GetUniformLocation(program.0, "Mvp\0".as_ptr().cast()) } {
-        n if n < 0 => panic!("no loc MVP ?"),
-        n => n as i32,
-    };
+    let pos_loc = program.get_attribute_location(c"Position").unwrap();
+    pos_loc.enable();
+    vertex_buf.bind();
+    pos_loc.assign(4, gl::FLOAT);
+    let color_loc = program.get_attribute_location(c"Color").unwrap();
+    color_loc.enable();
+    color_buf.bind();
+    color_loc.assign(3, gl::FLOAT);
+
+    let model_loc = program.get_matrix_location(c"model").unwrap();
+    let view_loc = program.get_matrix_location(c"view").unwrap();
+    let projection_loc = program.get_matrix_location(c"projection").unwrap();
 
     let mut scale_loop = (1..100).cycle();
     let mut translate_z_loop = (10..100).cycle();
@@ -144,16 +130,17 @@ fn main() {
         let now = Instant::now();
         unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
         let model = Matrix4::ident();
-        let translate = Matrix4::translate(0., 0., 0.);
+        // let translate = Matrix4::translate(0., 0., -1.);
         let rot = Matrix4::rotate_y((teta_y_loop.next().unwrap() as f32 / 200.) * 3.14149 * 2.);
-        let scale = Matrix4::scale(2.);
-        let model = translate * model;
+        let scale = Matrix4::scale(1.);
+        // let model = model * translate;
         let model = rot * model;
-        let model = scale * model;
-        let projection = Matrix4::perspective(90., 900. / 800., 0.1, 1000.);
+        // let model = scale * model;
+        let projection = Matrix4::perspective(90., 900. / 800., 0.1, 100.);
+        let view = Matrix4::ident();
         let view = Matrix4::look_at(
-            &(10., -10., 10.).into(),
-            &(0., 0., 0.).into(),
+            &(10., 10., 10.).into(),
+            &(00., 00., 00.).into(),
             &(0., 1., 0.).into(),
         );
         // let transform = transform.translate(
@@ -162,11 +149,14 @@ fn main() {
         //     translate_z_loop.next().expect("no translate ?") as f32,
         // );
 
-        let mvp = model * view * projection;
+        // let mvp = projection * view * model;
+        // let mvp = model * view * projection;
 
         // now the events are clear
         unsafe {
-            gl::UniformMatrix4fv(mvp_loc, 1, gl::FALSE, mvp.data.as_ptr() as *const _);
+            model_loc.set(&model);
+            view_loc.set(&view);
+            projection_loc.set(&projection);
             // indice_buf.draw(gl::TRIANGLES, obj.get_vertex_face().len() as i32);
 
             // vertex_array.draw(gl::TRIANGLES, obj.get_verticles().len() as i32);

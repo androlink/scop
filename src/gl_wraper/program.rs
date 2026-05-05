@@ -1,6 +1,12 @@
-use std::ffi::{CStr, CString};
+use std::{
+    ffi::{CStr, CString},
+    fmt::Display,
+};
 
-use crate::shader::Shader;
+use crate::{
+    gl_wraper::location::{AttributeLocation, MatrixLocation},
+    shader::Shader,
+};
 
 pub struct Program(pub gl::types::GLuint);
 
@@ -8,6 +14,10 @@ impl Drop for Program {
     fn drop(&mut self) {
         unsafe { gl::DeleteProgram(self.0) };
     }
+}
+#[derive(Debug)]
+pub enum ProgramError {
+    LOCATION(CString),
 }
 
 impl Program {
@@ -58,12 +68,21 @@ impl Program {
         Ok(self)
     }
 
-    pub fn get_attribute_location(&self, name: &CStr) -> Option<gl::types::GLuint> {
+    pub fn get_attribute_location(&self, name: &CStr) -> Result<AttributeLocation, ProgramError> {
         let loc = unsafe { gl::GetAttribLocation(self.0, name.as_ptr()) };
         if loc < 0 {
-            None
+            Err(ProgramError::LOCATION(CString::from(name)))
         } else {
-            Some(loc as gl::types::GLuint)
+            Ok(AttributeLocation(loc as gl::types::GLuint))
+        }
+    }
+
+    pub fn get_matrix_location(&self, name: &CStr) -> Result<MatrixLocation, ProgramError> {
+        let loc = unsafe { gl::GetUniformLocation(self.0, name.as_ptr()) };
+        if loc < 0 {
+            Err(ProgramError::LOCATION(CString::from(name)))
+        } else {
+            Ok(MatrixLocation(loc))
         }
     }
 

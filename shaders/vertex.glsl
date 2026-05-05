@@ -1,7 +1,9 @@
 #version 330 core
 in vec4 Position;
 in vec3 Color;
-uniform mat4 Mvp;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 
 out VS_OUTPUT {
     vec3 Color;
@@ -9,6 +11,6 @@ out VS_OUTPUT {
 
 void main()
 {
-    gl_Position = Mvp * Position;
+    gl_Position = projection * view * model * Position;
     OUT.Color = Color;
 }

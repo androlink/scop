@@ -1,4 +1,7 @@
-use std::ops::Mul;
+use std::{
+    fmt::{Display, write},
+    ops::Mul,
+};
 
 #[derive(Clone, Debug, Default)]
 pub struct Vec3 {
@@ -27,9 +30,21 @@ impl From<(f64, f64, f64)> for Vec3 {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Matrix4 {
     pub data: [[f32; 4]; 4],
+}
+
+impl From<[[f32; 4]; 4]> for Matrix4 {
+    fn from(value: [[f32; 4]; 4]) -> Self {
+        Self { data: value }
+    }
+}
+
+impl Default for Matrix4 {
+    fn default() -> Self {
+        Self { data: [[0.; 4]; 4] }
+    }
 }
 
 impl Matrix4 {
@@ -54,19 +69,34 @@ impl Matrix4 {
         }
     }
 
-    pub fn look_at(eye: &Vec3, center: &Vec3, up: &Vec3) -> Self {
-        let f = center.sub(eye).norm();
-        let s = f.mul_cross(up).norm();
-        let t = s.mul_cross(&f);
-        Self::translate(eye.x, eye.y, eye.z)
-            * Self {
-                data: [
-                    [s.x, t.x, -f.x, 0.],
-                    [s.y, t.y, -f.y, 0.],
-                    [s.z, t.z, -f.z, 0.],
-                    [0., 0., 0., 1.],
-                ],
-            }
+    // pub fn look_at(pos: &Vec3, target: &Vec3, up: &Vec3) -> Self {
+    //     let f = target.sub(pos).norm();
+    //     let s = f.mul_cross(up).norm();
+    //     let t = s.mul_cross(&f);
+    //     Matrix4::translate(-pos.x, -pos.y, -pos.z)
+    //         * Self {
+    //             data: [
+    //                 [s.x, t.x, -f.x, 0.],
+    //                 [s.y, t.y, -f.y, 0.],
+    //                 [s.z, t.z, -f.z, 0.],
+    //                 [0., 0., 0., 1.],
+    //             ],
+    //         }
+    // }
+
+    pub fn look_at(pos: &Vec3, target: &Vec3, up: &Vec3) -> Self {
+        let forward = target.sub(pos).norm();
+        let side = forward.mul_cross(up).norm();
+        let t = side.mul_cross(&forward);
+        // Matrix4::translate(-pos.x, -pos.y, -pos.z)
+        Self {
+            data: [
+                [side.x, t.x, -forward.x, 0.],
+                [side.y, t.y, -forward.y, 0.],
+                [side.z, t.z, -forward.z, 0.],
+                [-side.dot(pos), -t.dot(pos), forward.dot(pos), 1.],
+            ],
+        }
     }
 
     // no perspective ?
@@ -75,10 +105,19 @@ impl Matrix4 {
             data: [
                 [f32::atan(fov / 2.) * ratio, 0., 0., 0.],
                 [0., f32::atan(fov / 2.), 0., 0.],
-                [0., 0., (far) / (far - near), 1.],
-                [0., 0., -(near * far) / (far - near), 0.],
+                [0., 0., -(far + near) / (far - near), -1.],
+                [0., 0., -(2. * near * far) / (far - near), 0.],
             ],
         }
+
+        // Self {
+        //     data: [
+        //         [f32::atan(fov / 2.) * ratio, 0., 0., 0.],
+        //         [0., f32::atan(fov / 2.), 0., 0.],
+        //         [0., 0., (far) / (far - near), 1.],
+        //         [0., 0., -(near * far) / (far - near), 0.],
+        //     ],
+        // }
     }
 
     pub fn rotate_x(teta: f32) -> Self {
@@ -191,6 +230,10 @@ impl Vec3 {
     pub fn norm(&self) -> Self {
         let inv_norm = 1. / self.len();
         self.scale(inv_norm)
+    }
+
+    pub fn dot(&self, other: &Self) -> f32 {
+        self.x * other.x + self.y * other.y + self.z * other.z
     }
 
     pub fn scale(&self, n: f32) -> Self {
