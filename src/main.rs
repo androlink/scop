@@ -161,6 +161,11 @@ fn main() {
         projection_loc.set(&projection);
         polygon_mode(PolygonMode::Fill);
         indice_buf.draw(gl::TRIANGLES, obj.get_vertex_indices().len() as i32);
+        let model = Matrix4::ident();
+        let rot = Matrix4::rotate_y(-(teta_y_loop1.next().unwrap() as f32 / 200.) * 3.14149 * 2.);
+        let model = rot * model;
+        model_loc.set(&model);
+        indice_buf.draw(gl::TRIANGLES, obj.get_vertex_indices().len() as i32);
 
         let val = unsafe { gl::GetError() };
         if val != gl::NO_ERROR {

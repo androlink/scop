@@ -68,7 +68,7 @@ pub enum OBJError {
     Vertex(String),
     Face(String),
     Parse(String),
-    NotEnoughtArg(String),
+    NotEnoughArg(String),
 }
 
 impl OBJLoader {
@@ -82,23 +82,23 @@ impl OBJLoader {
         self.path = path.to_string();
         self
     }
-    fn parse_vertex(args: &Vec<&str>) -> Result<SVertex, OBJError> {
-        if (args.len() < 3 || args.len() > 4) {
-            return Err(OBJError::NotEnoughtArg("parse_vertex".to_string()));
+    fn parse_vertex(args: &[&str]) -> Result<SVertex, OBJError> {
+        if args.len() < 3 || args.len() > 4 {
+            return Err(OBJError::NotEnoughArg("parse_vertex".to_string()));
         }
         let x: f32 = args[0]
             .parse::<f32>()
-            .map_err(|e| OBJError::Parse(format!("parse_vertex: {e}").to_string()))?;
+            .map_err(|e| OBJError::Parse(format!("parse_vertex: {e}")))?;
         let y: f32 = args[1]
             .parse::<f32>()
-            .map_err(|e| OBJError::Parse(format!("parse_vertex: {e}").to_string()))?;
+            .map_err(|e| OBJError::Parse(format!("parse_vertex: {e}")))?;
         let z: f32 = args[2]
             .parse::<f32>()
-            .map_err(|e| OBJError::Parse(format!("parse_vertex: {e}").to_string()))?;
-        let w: f32 = if (args.len() == 4) {
+            .map_err(|e| OBJError::Parse(format!("parse_vertex: {e}")))?;
+        let w: f32 = if args.len() == 4 {
             args[4]
                 .parse::<f32>()
-                .map_err(|e| OBJError::Parse(format!("parse_vertex: {e}").to_string()))?
+                .map_err(|e| OBJError::Parse(format!("parse_vertex: {e}")))?
         } else {
             1.
         };
@@ -106,42 +106,40 @@ impl OBJLoader {
         Ok(SVertex::new_xyzw(x, y, z, w))
     }
 
-    fn parse_vertex_normal(args: &Vec<&str>) -> Result<SNormal, OBJError> {
+    fn parse_vertex_normal(args: &[&str]) -> Result<SNormal, OBJError> {
         if args.len() != 3 {
-            return Err(OBJError::NotEnoughtArg("parse_vertex_normal".to_string()));
+            return Err(OBJError::NotEnoughArg("parse_vertex_normal".to_string()));
         }
         let x: f32 = args[0]
             .parse::<f32>()
-            .map_err(|e| OBJError::Parse(format!("parse_vertex_normal: {e}").to_string()))?;
+            .map_err(|e| OBJError::Parse(format!("parse_vertex_normal: {e}")))?;
         let y: f32 = args[1]
             .parse::<f32>()
-            .map_err(|e| OBJError::Parse(format!("parse_vertex_normal: {e}").to_string()))?;
+            .map_err(|e| OBJError::Parse(format!("parse_vertex_normal: {e}")))?;
         let z: f32 = args[2]
             .parse::<f32>()
-            .map_err(|e| OBJError::Parse(format!("parse_vertex_normal: {e}").to_string()))?;
+            .map_err(|e| OBJError::Parse(format!("parse_vertex_normal: {e}")))?;
 
         Ok(SNormal::new(x, y, z))
     }
 
-    fn parse_vertex_texture(args: &Vec<&str>) -> Result<STexture, OBJError> {
+    fn parse_vertex_texture(args: &[&str]) -> Result<STexture, OBJError> {
         if args.len() < 2 {
-            return Err(OBJError::NotEnoughtArg("parse_vertex_texture".to_string()));
+            return Err(OBJError::NotEnoughArg("parse_vertex_texture".to_string()));
         }
         let x: f32 = args[0]
             .parse::<f32>()
-            .map_err(|e| OBJError::Parse(format!("parse_face: {e}").to_string()))?;
+            .map_err(|e| OBJError::Parse(format!("parse_face: {e}")))?;
         let y: f32 = args[1]
             .parse::<f32>()
-            .map_err(|e| OBJError::Parse(format!("parse_face: {e}").to_string()))?;
+            .map_err(|e| OBJError::Parse(format!("parse_face: {e}")))?;
 
         Ok(STexture::new(x, y))
     }
 
-    fn parse_face(
-        args: &Vec<&str>,
-    ) -> Result<(Vec<SIndice>, Vec<SIndice>, Vec<SIndice>), OBJError> {
+    fn parse_face(args: &[&str]) -> Result<(Vec<SIndice>, Vec<SIndice>, Vec<SIndice>), OBJError> {
         if args.len() < 3 {
-            return Err(OBJError::NotEnoughtArg("parse_face".to_string()));
+            return Err(OBJError::NotEnoughArg("parse_face".to_string()));
         }
         let mut v_indices = Vec::new();
         let mut t_indices = Vec::new();
@@ -152,7 +150,7 @@ impl OBJLoader {
             let v_index = if verticles[0].len() > 0 {
                 verticles[0]
                     .parse::<u32>()
-                    .map_err(|e| OBJError::Parse(format!("parse_face: {e}").to_string()))?
+                    .map_err(|e| OBJError::Parse(format!("parse_face: {e}")))?
                     - 1
             } else {
                 0
@@ -160,7 +158,7 @@ impl OBJLoader {
             let t_index = if verticles.len() > 1 && verticles[1].len() > 0 {
                 verticles[1]
                     .parse::<u32>()
-                    .map_err(|e| OBJError::Parse(format!("parse_face: {e}").to_string()))?
+                    .map_err(|e| OBJError::Parse(format!("parse_face: {e}")))?
                     - 1
             } else {
                 0
@@ -168,7 +166,7 @@ impl OBJLoader {
             let n_index = if verticles.len() > 2 && verticles[2].len() > 0 {
                 verticles[2]
                     .parse::<u32>()
-                    .map_err(|e| OBJError::Parse(format!("parse_face: {e}").to_string()))?
+                    .map_err(|e| OBJError::Parse(format!("parse_face: {e}")))?
                     - 1
             } else {
                 0
@@ -222,24 +220,25 @@ impl OBJLoader {
             let line = line.map_err(|o| OBJError::Io(o, file_path.to_string()))?;
             let mut args_it = line.split_whitespace();
             if let Some(id) = args_it.next() {
+                let args: Vec<_> = args_it.clone().collect();
                 match id {
                     "v" => {
-                        let vertex = Self::parse_vertex(&args_it.collect())
+                        let vertex = Self::parse_vertex(&args)
                             .map_err(|e| OBJError::Vertex(format!("load: {e:?}").to_string()))?;
                         verticles.push(vertex);
                     }
                     "vn" => {
-                        let normal = Self::parse_vertex_normal(&args_it.collect())
+                        let normal = Self::parse_vertex_normal(&args)
                             .map_err(|e| OBJError::Vertex(format!("load: {e:?}").to_string()))?;
                         normals.push(normal);
                     }
                     "vt" => {
-                        let texture = Self::parse_vertex_texture(&args_it.collect())
+                        let texture = Self::parse_vertex_texture(&args)
                             .map_err(|e| OBJError::Vertex(format!("load: {e:?}").to_string()))?;
                         uvs.push(texture);
                     }
                     "f" => {
-                        let mut face = Self::parse_face(&args_it.collect())
+                        let mut face = Self::parse_face(&args)
                             .map_err(|e| OBJError::Vertex(format!("load: {e:?}").to_string()))?;
                         v_faces.append(&mut face.0);
                         t_faces.append(&mut face.1);

@@ -1,7 +1,4 @@
-use std::{
-    ffi::{CStr, CString},
-    fmt::Display,
-};
+use std::ffi::{CStr, CString};
 
 use crate::{
     gl_wraper::location::{AttributeLocation, MatrixLocation},
