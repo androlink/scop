@@ -12,7 +12,7 @@ use std::{
 };
 
 use crate::{Program, mat4::Matrix4, obj::OBJLoader, shader::*, vertex::*};
-use sdl2::*;
+use sdl2::{event::WindowEvent, keyboard::Keycode, *};
 
 fn main() {
     let sdl = sdl2::init().expect("not sdl ?");
@@ -33,7 +33,9 @@ fn main() {
         .expect("no vsync ?");
     unsafe { gl::ClearColor(0.3, 0.3, 0.3, 1.) };
 
-    unsafe { gl::Viewport(0, 0, 800, 900) };
+    video.gl_attr().set_context_major_version(3);
+    video.gl_attr().set_context_minor_version(3);
+    unsafe { gl::Viewport(0, 0, win.size().0 as i32, win.size().1 as i32) };
     unsafe { gl::Enable(gl::DEPTH_TEST) };
     unsafe { gl::Enable(gl::DEPTH_CLAMP) };
     unsafe { gl::Enable(gl::CULL_FACE) };
@@ -114,16 +116,25 @@ fn main() {
     let projection_loc = program.get_matrix_location(c"projection").unwrap();
 
     let mut scale_loop = (1..100).cycle();
-    let mut translate_z_loop = (10..100).cycle();
-    let mut teta_y_loop = (0..200).cycle();
-    let mut translate_y_loop = (-100..100).cycle();
+    let mut teta_y_loop1 = (0..200).cycle();
+    let mut teta_y_loop2 = (0..400).cycle();
 
     polygon_mode(PolygonMode::Fill);
     'main_loop: loop {
         // handle events this frame
         while let Some(ev) = event_pump.poll_event() {
             match ev {
-                event::Event::Quit { timestamp: _ } => break 'main_loop,
+                event::Event::Quit { .. }
+                | event::Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'main_loop,
+                event::Event::Window {
+                    win_event: WindowEvent::Resized(w, h),
+                    ..
+                } => {
+                    unsafe { gl::Viewport(0, 0, w, h) };
+                }
                 _ => (),
             }
         }
@@ -131,43 +142,29 @@ fn main() {
         unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
         let model = Matrix4::ident();
         // let translate = Matrix4::translate(0., 0., -1.);
-        let rot = Matrix4::rotate_y((teta_y_loop.next().unwrap() as f32 / 200.) * 3.14149 * 2.);
+        let rot = Matrix4::rotate_y((teta_y_loop1.next().unwrap() as f32 / 200.) * 3.14149 * 2.);
         let scale = Matrix4::scale(1.);
         // let model = model * translate;
         let model = rot * model;
         // let model = scale * model;
-        let projection = Matrix4::perspective(90., 900. / 800., 0.1, 100.);
+        let projection =
+            Matrix4::perspective(90., win.size().1 as f32 / win.size().0 as f32, 0.1, 100.);
         let view = Matrix4::ident();
         let view = Matrix4::look_at(
             &(10., 10., 10.).into(),
             &(00., 00., 00.).into(),
             &(0., 1., 0.).into(),
         );
-        // let transform = transform.translate(
-        //     0.,
-        //     translate_y_loop.next().expect("no translate ?") as f32,
-        //     translate_z_loop.next().expect("no translate ?") as f32,
-        // );
 
-        // let mvp = projection * view * model;
-        // let mvp = model * view * projection;
+        model_loc.set(&model);
+        view_loc.set(&view);
+        projection_loc.set(&projection);
+        polygon_mode(PolygonMode::Fill);
+        indice_buf.draw(gl::TRIANGLES, obj.get_vertex_indices().len() as i32);
 
-        // now the events are clear
-        unsafe {
-            model_loc.set(&model);
-            view_loc.set(&view);
-            projection_loc.set(&projection);
-            // indice_buf.draw(gl::TRIANGLES, obj.get_vertex_face().len() as i32);
-
-            // vertex_array.draw(gl::TRIANGLES, obj.get_verticles().len() as i32);
-            //
-            polygon_mode(PolygonMode::Fill);
-            indice_buf.draw(gl::TRIANGLES, obj.get_vertex_indices().len() as i32);
-
-            let val = gl::GetError();
-            if val != gl::NO_ERROR {
-                println!("gl error {}", val);
-            }
+        let val = unsafe { gl::GetError() };
+        if val != gl::NO_ERROR {
+            println!("gl error {}", val);
         }
 
         let elapsed_time = now.elapsed();
