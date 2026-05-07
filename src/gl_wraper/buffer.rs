@@ -1,7 +1,11 @@
+use std::ptr::null;
+
 pub use gl::ARRAY_BUFFER as Array;
 pub use gl::ELEMENT_ARRAY_BUFFER as Element_Array;
 
 pub use gl::types::GLenum as BufferType;
+
+use crate::object::ObjectDescriptor;
 
 pub struct Buffer<const BT: gl::types::GLenum>(pub gl::types::GLuint);
 impl<const BT: gl::types::GLenum> Buffer<BT> {
@@ -39,7 +43,19 @@ impl<const BT: gl::types::GLenum> Buffer<BT> {
 
     pub fn draw(&self, mode: gl::types::GLenum, count: gl::types::GLsizei) {
         self.bind();
-        unsafe { gl::DrawElements(mode, 3 * count, gl::UNSIGNED_INT, 0 as *const _) }
+        unsafe { gl::DrawElements(mode, 3 * count, gl::UNSIGNED_INT, null()) }
+    }
+
+    pub fn draw_object(&self, object: &ObjectDescriptor) {
+        self.bind();
+        unsafe {
+            gl::DrawElements(
+                gl::TRIANGLES,
+                3 * object.size,
+                gl::UNSIGNED_INT,
+                object.start as *const _,
+            )
+        };
     }
 }
 

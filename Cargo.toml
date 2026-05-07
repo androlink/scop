@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bytemuck = "1.25.0"
 gl = "0.14.0"
 rand = "0.10.1"
 sdl2 = "0.38.0"

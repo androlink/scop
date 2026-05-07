@@ -43,6 +43,12 @@ pub struct SIndice(
     pub gl::types::GLuint,
 );
 
+impl SIndice {
+    pub fn apply_offset(&self, offset: u32) -> Self {
+        SIndice(self.0 + offset, self.1 + offset, self.2 + offset)
+    }
+}
+
 impl SVertex {
     pub fn new_xyz(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z, w: 1.0f32 }
