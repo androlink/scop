@@ -5,7 +5,7 @@ pub use gl::ELEMENT_ARRAY_BUFFER as Element_Array;
 
 pub use gl::types::GLenum as BufferType;
 
-use crate::object::ObjectDescriptor;
+use crate::object::OBJDescriptor;
 
 pub struct Buffer<const BT: gl::types::GLenum>(pub gl::types::GLuint);
 impl<const BT: gl::types::GLenum> Buffer<BT> {
@@ -46,14 +46,14 @@ impl<const BT: gl::types::GLenum> Buffer<BT> {
         unsafe { gl::DrawElements(mode, 3 * count, gl::UNSIGNED_INT, null()) }
     }
 
-    pub fn draw_object(&self, object: &ObjectDescriptor) {
+    pub fn draw_object(&self, object: &OBJDescriptor) {
         self.bind();
         unsafe {
             gl::DrawElements(
                 gl::TRIANGLES,
                 3 * object.size,
                 gl::UNSIGNED_INT,
-                object.start as *const _,
+                (3 * object.start) as *const _,
             )
         };
     }

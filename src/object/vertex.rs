@@ -1,6 +1,6 @@
 use core::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct SVertex {
     pub x: f32,
     pub y: f32,
@@ -8,14 +8,14 @@ pub struct SVertex {
     pub w: f32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct SNormal {
     pub x: f32,
     pub y: f32,
     pub z: f32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct STexture {
     pub x: f32,
     pub y: f32,
@@ -33,10 +33,10 @@ impl STexture {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct SColor(pub f32, pub f32, pub f32);
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct SIndice(
     pub gl::types::GLuint,
     pub gl::types::GLuint,

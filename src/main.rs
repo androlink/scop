@@ -2,7 +2,6 @@ mod gl_wraper;
 mod mat4;
 mod object;
 mod shader;
-mod vertex;
 mod window;
 
 use gl_wraper::*;
@@ -12,7 +11,14 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::{Program, mat4::Matrix4, object::OBJLoader, shader::*, vertex::*};
+use object::SColor;
+
+use crate::{
+    Program,
+    mat4::Matrix4,
+    object::{OBJBuffer, OBJLoader},
+    shader::*,
+};
 use sdl2::{event::WindowEvent, keyboard::Keycode, *};
 
 fn main() {
@@ -76,19 +82,33 @@ fn main() {
     // for file in args() {
     //     loader.load(file.as_str());
     // }
-    let file = args().collect::<Vec<String>>()[1].to_string();
-    for _ in 0..3 {
-        loader.load(file.as_str());
-    }
-    println!("{:#?}", loader.object());
+    // let file = args().collect::<Vec<String>>()[1].to_string();
+
+    // let object_buffer_tmp = loader.load(&file).unwrap();
+
+    let object_buffers: Vec<OBJBuffer> = args().skip(1).map(|f| loader.load(&f).unwrap()).collect();
+
+    let object_buffer_tmp: OBJBuffer =
+        object_buffers
+            .iter()
+            .fold(OBJBuffer::default(), |mut acc, o| {
+                acc.append(o);
+                acc
+            });
+
+    println!("{:#?}", object_buffer_tmp.objects());
+    let mut object_buffer = OBJBuffer::default();
+    object_buffer.append(&object_buffer_tmp);
+    println!("{:#?}", object_buffer.objects());
+
     // loader
     //     .load(std::env::args().collect::<Vec<String>>()[1].as_str())
     //     .expect("no object ?");
 
     // println!("{:#?}", obj);
     rand::random::<f32>();
-    let colors: Vec<SColor> = loader
-        .get_verticles()
+    let colors: Vec<SColor> = object_buffer
+        .verticles()
         .iter()
         .map(|_| {
             SColor(
@@ -103,13 +123,13 @@ fn main() {
     let vertex_array = VertexArray::new().expect("Couldn't make a VAO");
     vertex_array.bind();
     let vertex_buf: Buffer<Array> = Buffer::<Array>::new().expect("Couldn't make a VBO");
-    vertex_buf.data(loader.get_verticles().as_slice(), gl::STATIC_DRAW);
+    vertex_buf.data(object_buffer.verticles().as_slice(), gl::STATIC_DRAW);
 
     let color_buf: Buffer<Array> = Buffer::<Array>::new().expect("no colors ?");
     color_buf.data(colors.as_slice(), gl::STATIC_DRAW);
 
     let indice_buf: Buffer<Element_Array> = Buffer::<Element_Array>::new().expect("no buffer?");
-    indice_buf.data(loader.get_vertex_indices().as_slice(), gl::STATIC_DRAW);
+    indice_buf.data(object_buffer.vertex_indices().as_slice(), gl::STATIC_DRAW);
 
     let pos_loc = program.get_attribute_location(c"Position").unwrap();
     pos_loc.enable();
@@ -128,7 +148,7 @@ fn main() {
     let mut teta_y_loop1 = (0..200).cycle();
     let mut teta_y_loop2 = (0..400).cycle();
 
-    let mut model_switch = loader.object().iter().cycle().peekable();
+    let mut model_switch = object_buffer.objects().iter().cycle().peekable();
 
     polygon_mode(PolygonMode::Fill);
     'main_loop: loop {
@@ -178,16 +198,16 @@ fn main() {
         view_loc.set(&view);
         projection_loc.set(&projection);
         polygon_mode(PolygonMode::Fill);
-        indice_buf.draw_object(obj);
-        // indice_buf.draw(gl::TRIANGLES, loader.get_vertex_indices().len() as i32);
+        // indice_buf.draw_object(obj);
+        indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
         let model = Matrix4::ident();
         let rot = Matrix4::rotate_x((teta_y_loop1.next().unwrap() as f32 / 200.) * 3.14149 * 2.);
         let translate = Matrix4::translate(0., 0., 10.);
         let model = translate * model;
         let model = rot * model;
         model_loc.set(&model);
-        indice_buf.draw_object(obj);
-        // indice_buf.draw(gl::TRIANGLES, loader.get_vertex_indices().len() as i32);
+        // indice_buf.draw_object(obj);
+        indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
         let model = Matrix4::ident();
         let rot = Matrix4::rotate_z((teta_y_loop1.next().unwrap() as f32 / 200.) * 3.14149 * 2.);
         let translate = Matrix4::translate(10., 0., 0.);
@@ -195,8 +215,8 @@ fn main() {
         let model = rot * model;
         model_loc.set(&model);
         polygon_mode(PolygonMode::Line);
-        indice_buf.draw_object(obj);
-        // indice_buf.draw(gl::TRIANGLES, loader.get_vertex_indices().len() as i32);
+        // indice_buf.draw_object(obj);
+        indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
 
         let val = unsafe { gl::GetError() };
         if val != gl::NO_ERROR {
@@ -205,7 +225,13 @@ fn main() {
 
         let elapsed_time = now.elapsed();
         let time = elapsed_time.as_micros() as f32;
-        let _ = win.set_title(format!("{} us per frame", time).as_str());
+        let _ = win.set_title(
+            format!(
+                "{} us per frame: file:{} start: {} size: {}",
+                time, obj.name, obj.start, obj.size
+            )
+            .as_str(),
+        );
         // here's where we could change the world state and draw.
         sleep(elapsed_time.abs_diff(Duration::from_millis(((1. / 30.) * 1000.) as u64)));
         win.gl_swap_window();
