@@ -1,6 +1,7 @@
+mod bmp;
 mod gl_wraper;
 mod mat4;
-mod object;
+mod obj;
 mod shader;
 mod window;
 
@@ -11,12 +12,12 @@ use std::{
     time::{Duration, Instant},
 };
 
-use object::SColor;
+use obj::SColor;
 
 use crate::{
     Program,
     mat4::Matrix4,
-    object::{OBJBuffer, OBJLoader},
+    obj::{OBJBuffer, OBJLoader},
     shader::*,
 };
 use sdl2::{event::WindowEvent, keyboard::Keycode, *};
@@ -42,6 +43,7 @@ fn main() {
     unsafe { gl::ClearColor(0.3, 0.3, 0.3, 1.) };
     video.gl_attr().set_context_major_version(3);
     video.gl_attr().set_context_minor_version(3);
+
     unsafe { gl::Viewport(0, 0, win.size().0 as i32, win.size().1 as i32) };
     unsafe { gl::Enable(gl::DEPTH_TEST) };
     unsafe { gl::Enable(gl::DEPTH_CLAMP) };
@@ -92,14 +94,26 @@ fn main() {
         object_buffers
             .iter()
             .fold(OBJBuffer::default(), |mut acc, o| {
+                println!("{:#?}", o.objects());
                 acc.append(o);
                 acc
             });
 
-    println!("{:#?}", object_buffer_tmp.objects());
     let mut object_buffer = OBJBuffer::default();
     object_buffer.append(&object_buffer_tmp);
     println!("{:#?}", object_buffer.objects());
+
+    object_buffer
+        .verticles()
+        .iter()
+        .enumerate()
+        .for_each(|(i, v)| println!("[{i}] : {v}"));
+
+    object_buffer
+        .vertex_indices()
+        .iter()
+        .enumerate()
+        .for_each(|(i, v)| println!("[{i}] : [{v}]"));
 
     // loader
     //     .load(std::env::args().collect::<Vec<String>>()[1].as_str())
@@ -198,16 +212,16 @@ fn main() {
         view_loc.set(&view);
         projection_loc.set(&projection);
         polygon_mode(PolygonMode::Fill);
-        // indice_buf.draw_object(obj);
-        indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
+        indice_buf.draw_object(obj);
+        // indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
         let model = Matrix4::ident();
         let rot = Matrix4::rotate_x((teta_y_loop1.next().unwrap() as f32 / 200.) * 3.14149 * 2.);
         let translate = Matrix4::translate(0., 0., 10.);
         let model = translate * model;
         let model = rot * model;
         model_loc.set(&model);
-        // indice_buf.draw_object(obj);
-        indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
+        indice_buf.draw_object(obj);
+        // indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
         let model = Matrix4::ident();
         let rot = Matrix4::rotate_z((teta_y_loop1.next().unwrap() as f32 / 200.) * 3.14149 * 2.);
         let translate = Matrix4::translate(10., 0., 0.);
@@ -215,8 +229,8 @@ fn main() {
         let model = rot * model;
         model_loc.set(&model);
         polygon_mode(PolygonMode::Line);
-        // indice_buf.draw_object(obj);
-        indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
+        indice_buf.draw_object(obj);
+        // indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
 
         let val = unsafe { gl::GetError() };
         if val != gl::NO_ERROR {

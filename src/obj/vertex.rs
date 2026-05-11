@@ -61,19 +61,25 @@ impl SVertex {
 
 impl fmt::Display for SVertex {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "v {} {} {} {}", self.x, self.y, self.z, self.w)
+        write!(f, "{} {} {} {}", self.x, self.y, self.z, self.w)
     }
 }
 
 impl fmt::Display for SNormal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "vn {} {} {}", self.x, self.y, self.z)
+        write!(f, "{} {} {}", self.x, self.y, self.z)
+    }
+}
+
+impl fmt::Display for SIndice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {} {}", self.0, self.1, self.2)
     }
 }
 
 impl fmt::Display for STexture {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "vt {} {}", self.x, self.y)
+        write!(f, "{} {}", self.x, self.y)
     }
 }
 

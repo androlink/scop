@@ -16,8 +16,6 @@ pub enum OBJError {
     NoObject,
 }
 
-impl OBJLoader {}
-
 #[derive(Debug, Clone)]
 pub struct OBJDescriptor {
     pub name: String,

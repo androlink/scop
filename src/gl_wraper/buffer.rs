@@ -5,7 +5,7 @@ pub use gl::ELEMENT_ARRAY_BUFFER as Element_Array;
 
 pub use gl::types::GLenum as BufferType;
 
-use crate::object::OBJDescriptor;
+use crate::obj::OBJDescriptor;
 
 pub struct Buffer<const BT: gl::types::GLenum>(pub gl::types::GLuint);
 impl<const BT: gl::types::GLenum> Buffer<BT> {
@@ -33,7 +33,7 @@ impl<const BT: gl::types::GLenum> Buffer<BT> {
         unsafe {
             gl::BufferData(
                 BT as gl::types::GLenum,
-                (data.len() * size_of::<N>()).try_into().unwrap(),
+                size_of_val(data) as _,
                 data.as_ptr().cast(),
                 usage,
             );
@@ -49,13 +49,23 @@ impl<const BT: gl::types::GLenum> Buffer<BT> {
     pub fn draw_object(&self, object: &OBJDescriptor) {
         self.bind();
         unsafe {
-            gl::DrawElements(
+            gl::DrawRangeElements(
                 gl::TRIANGLES,
-                3 * object.size,
+                (3 * object.start) as _,
+                (3 * (object.start + object.size)) as _,
+                (3 * object.size) as _,
                 gl::UNSIGNED_INT,
-                (3 * object.start) as *const _,
+                0 as *const _,
             )
         };
+        // unsafe {
+        //     gl::DrawElements(
+        //         gl::TRIANGLES,
+        //         (object.size * 3) as _,
+        //         gl::UNSIGNED_INT,
+        //         null(),
+        //     )
+        // };
     }
 }
 
@@ -72,7 +82,7 @@ where
     unsafe {
         gl::BufferData(
             ty as gl::types::GLenum,
-            (data.len() * size_of::<N>()).try_into().unwrap(),
+            size_of_val(data) as _,
             data.as_ptr().cast(),
             usage,
         );

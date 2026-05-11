@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+ash = "0.38.0"
+egui = "0.34.2"
 gl = "0.14.0"
 rand = "0.10.1"
 sdl2 = "0.38.0"
