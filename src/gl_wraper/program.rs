@@ -1,7 +1,7 @@
 use std::ffi::{CStr, CString};
 
 use crate::{
-    gl_wraper::location::{AttributeLocation, MatrixLocation},
+    gl_wraper::location::{AttributeLocation, F32Location, MatrixLocation},
     shader::Shader,
 };
 
@@ -80,6 +80,14 @@ impl Program {
             Err(ProgramError::LOCATION(CString::from(name)))
         } else {
             Ok(MatrixLocation(loc))
+        }
+    }
+    pub fn get_float_location(&self, name: &CStr) -> Result<F32Location, ProgramError> {
+        let loc = unsafe { gl::GetUniformLocation(self.0, name.as_ptr()) };
+        if loc < 0 {
+            Err(ProgramError::LOCATION(CString::from(name)))
+        } else {
+            Ok(F32Location(loc))
         }
     }
 

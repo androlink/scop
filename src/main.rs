@@ -54,14 +54,14 @@ fn main() {
 
     let frag_shader = Shader::new(gl::FRAGMENT_SHADER)
         .expect("no shader ?")
-        .source_file("./shaders/fragment.glsl")
+        .source_file("./shaders/funny.frag")
         .expect("no file ?")
         .compile()
         .status()
         .unwrap();
     let vert_shader = Shader::new(gl::VERTEX_SHADER)
         .expect("no shader ?")
-        .source_file("./shaders/vertex.glsl")
+        .source_file("./shaders/funny.vert")
         .expect("no file ?")
         .compile()
         .status()
@@ -145,14 +145,14 @@ fn main() {
     let indice_buf: Buffer<Element_Array> = Buffer::<Element_Array>::new().expect("no buffer?");
     indice_buf.data(object_buffer.vertex_indices().as_slice(), gl::STATIC_DRAW);
 
-    let pos_loc = program.get_attribute_location(c"Position").unwrap();
+    let pos_loc = program.get_attribute_location(c"aPos").unwrap();
     pos_loc.enable();
     vertex_buf.bind();
     pos_loc.assign(4, gl::FLOAT);
-    let color_loc = program.get_attribute_location(c"Color").unwrap();
-    color_loc.enable();
-    color_buf.bind();
-    color_loc.assign(3, gl::FLOAT);
+    // let color_loc = program.get_attribute_location(c"Color").unwrap();
+    // color_loc.enable();
+    // color_buf.bind();
+    // color_loc.assign(3, gl::FLOAT);
 
     let model_loc = program.get_matrix_location(c"model").unwrap();
     let view_loc = program.get_matrix_location(c"view").unwrap();
@@ -163,7 +163,10 @@ fn main() {
     let mut teta_y_loop2 = (0..400).cycle();
 
     let mut model_switch = object_buffer.objects().iter().cycle().peekable();
-
+    let iTimeLoc = program.get_float_location(c"iTime").unwrap();
+    let iResolution_loc = program.get_float_location(c"iResolution").unwrap();
+    let iMouse_loc = program.get_float_location(c"iMouse").unwrap();
+    let ref_time = Instant::now();
     polygon_mode(PolygonMode::Fill);
     'main_loop: loop {
         // handle events this frame
@@ -189,6 +192,16 @@ fn main() {
                 _ => (),
             }
         }
+        unsafe {
+            // Pour iTime
+            iTimeLoc.set1(ref_time.elapsed().as_millis() as f32 / 1000.);
+
+            // Pour iResolution
+            iResolution_loc.set3(2000., 2000., 1.0);
+
+            // Pour iMouse
+            iMouse_loc.set4(400., 450., 0., 0.);
+        }
         let now = Instant::now();
         unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
         let model = Matrix4::ident();
@@ -212,16 +225,16 @@ fn main() {
         view_loc.set(&view);
         projection_loc.set(&projection);
         polygon_mode(PolygonMode::Fill);
-        indice_buf.draw_object(obj);
-        // indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
+        // indice_buf.draw_object(obj);
+        indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
         let model = Matrix4::ident();
         let rot = Matrix4::rotate_x((teta_y_loop1.next().unwrap() as f32 / 200.) * 3.14149 * 2.);
         let translate = Matrix4::translate(0., 0., 10.);
         let model = translate * model;
         let model = rot * model;
         model_loc.set(&model);
-        indice_buf.draw_object(obj);
-        // indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
+        // indice_buf.draw_object(obj);
+        indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
         let model = Matrix4::ident();
         let rot = Matrix4::rotate_z((teta_y_loop1.next().unwrap() as f32 / 200.) * 3.14149 * 2.);
         let translate = Matrix4::translate(10., 0., 0.);
@@ -229,8 +242,8 @@ fn main() {
         let model = rot * model;
         model_loc.set(&model);
         polygon_mode(PolygonMode::Line);
-        indice_buf.draw_object(obj);
-        // indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
+        // indice_buf.draw_object(obj);
+        indice_buf.draw(gl::TRIANGLES, object_buffer.vertex_indices().len() as i32);
 
         let val = unsafe { gl::GetError() };
         if val != gl::NO_ERROR {
