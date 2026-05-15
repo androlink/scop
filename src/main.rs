@@ -6,6 +6,7 @@ mod shader;
 mod vulkan;
 mod window;
 
+use ash::vk::Handle;
 use gl_wraper::*;
 use std::{
     env::args,
@@ -20,7 +21,7 @@ use crate::{
     mat4::Matrix4,
     obj::{OBJBuffer, OBJLoader},
     shader::*,
-    vulkan::init::init_vulkan,
+    vulkan::app::App,
 };
 use sdl2::{event::WindowEvent, keyboard::Keycode, *};
 
@@ -31,13 +32,15 @@ fn main() {
     let mut event_pump = sdl.event_pump().expect("no event pump ?");
 
     video.vulkan_load_library_default().expect("no vulkan ?");
-
-    let vulkan = init_vulkan().unwrap();
     // video.gl_load_library_default().expect("no opengl ?");
 
     // gl::load_with(|f_name| video.gl_get_proc_address(f_name) as *const _);
 
     let mut win = window::get_window(&video).expect("no window ?");
+    let vulkan = App::new().unwrap();
+    let surface = win
+        .vulkan_create_surface(vulkan.instance.handle().as_raw() as usize)
+        .unwrap();
     // let context = win.gl_create_context().expect("no context ?");
     // win.gl_make_current(&context).expect("no gl_make_current ?");
 
