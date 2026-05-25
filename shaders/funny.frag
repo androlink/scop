@@ -2,6 +2,7 @@
 
 // Uniforms from the application
 uniform float iTime;
+uniform float iSomething;
 uniform vec3 iResolution;
 uniform vec4 iMouse;
 
@@ -53,7 +54,7 @@ vec4 render(in vec3 ro, in vec3 rd, float time, float prm1, vec2 bsMo)
     vec3 lpos = vec3(disp(time + ldst) * 0.5, time + ldst);
     float t = 1.5;
     float fogT = 0.;
-    for (int i = 0; i < 70; i++)
+    for (int i = 0; i < iSomething; i++)
     {
         if (rez.a > 0.85) break;
 

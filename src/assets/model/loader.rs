@@ -40,8 +40,8 @@ impl OBJLoader {
         self
     }
 
-    pub fn load(&mut self, obj_file: &str) -> Result<OBJBuffer, OBJError> {
-        let mut buffer = OBJBuffer::default();
+    pub fn load(&mut self, obj_file: &str) -> Result<OBJModel, OBJError> {
+        let mut buffer = OBJModel::default();
         let start = Instant::now();
         let file_path = self.path.to_string() + "/" + obj_file;
         let file = File::open(file_path.clone()).map_err(|o| OBJError::Io(o, file_path.clone()))?;

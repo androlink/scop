@@ -1,21 +1,18 @@
-use std::{
-    fs::{File, read_to_string},
-    io::Read,
-};
+use std::fs::read_to_string;
 
-pub struct Shader(pub gl::types::GLuint);
+pub struct GLShader(pub gl::types::GLuint);
 
-impl Drop for Shader {
+impl Drop for GLShader {
     fn drop(&mut self) {
         unsafe { gl::DeleteShader(self.0) };
     }
 }
 
-impl Shader {
-    pub fn new(shader_type: gl::types::GLenum) -> Option<Self> {
+impl GLShader {
+    pub fn new(shader_type: gl::types::GLenum) -> Result<Self, String> {
         match unsafe { gl::CreateShader(shader_type) } {
-            0 => None,
-            n => Some(Self(n)),
+            0 => Err("cannot create shader".to_string()),
+            n => Ok(Self(n)),
         }
     }
     pub fn source(self, source: &[u8]) -> Self {
@@ -29,13 +26,11 @@ impl Shader {
         }
         self
     }
-    pub fn source_file(self, path: &str) -> Option<Self> {
-        println!("loading shader {path}");
-        let file_content = match read_to_string(path) {
-            Err(_) => return None,
-            Ok(file) => file,
-        };
-        Some(self.source(file_content.as_bytes()))
+    pub fn source_file(self, path: &str) -> Result<Self, String> {
+        match read_to_string(path) {
+            Err(e) => Err(e.to_string()),
+            Ok(file_content) => Ok(self.source(file_content.as_bytes())),
+        }
     }
 
     pub fn compile(self) -> Self {
@@ -62,9 +57,5 @@ impl Shader {
             return Err(String::from_utf8_lossy(buf.as_slice()).to_string());
         }
         Ok(self)
-    }
-
-    pub fn delete(self) {
-        unsafe { gl::DeleteShader(self.0) };
     }
 }

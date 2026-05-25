@@ -1,27 +1,48 @@
 use std::ffi::{CStr, CString};
 
 use crate::{
-    gl_wraper::location::{AttributeLocation, F32Location, MatrixLocation},
-    shader::Shader,
+    platform::location::{AttributeLocation, F32Location, MatrixLocation},
+    shader::GLShader,
 };
 
-pub struct Program(pub gl::types::GLuint);
+pub struct ShaderProgram(pub gl::types::GLuint);
 
-impl Drop for Program {
+impl Drop for ShaderProgram {
     fn drop(&mut self) {
         unsafe { gl::DeleteProgram(self.0) };
     }
 }
+
 #[derive(Debug)]
 pub enum ProgramError {
     LOCATION(CString),
 }
 
-impl Program {
-    pub fn new() -> Option<Self> {
+impl ShaderProgram {
+    pub fn init(vertex: &str, fragment: &str) -> Result<Self, String> {
+        let frag_shader = GLShader::new(gl::FRAGMENT_SHADER)?
+            .source_file(fragment)?
+            .compile()
+            .status()?;
+        let vert_shader = GLShader::new(gl::VERTEX_SHADER)?
+            .source_file(vertex)?
+            .compile()
+            .status()?;
+
+        let program = ShaderProgram::new()?
+            .attach_shader(&frag_shader)
+            .attach_shader(&vert_shader)
+            .link()
+            .status()?
+            .detach_shader(&frag_shader)
+            .detach_shader(&vert_shader);
+        Ok(program)
+    }
+
+    pub fn new() -> Result<Self, String> {
         match unsafe { gl::CreateProgram() } {
-            0 => None,
-            n => Some(Self(n)),
+            0 => Err("cannot create program".to_string()),
+            n => Ok(Self(n)),
         }
     }
 
@@ -29,12 +50,12 @@ impl Program {
         unsafe { gl::UseProgram(self.0) };
     }
 
-    pub fn attach_shader(self, shader: &Shader) -> Self {
+    pub fn attach_shader(self, shader: &GLShader) -> Self {
         unsafe { gl::AttachShader(self.0, shader.0) };
         self
     }
 
-    pub fn detach_shader(self, shader: &Shader) -> Self {
+    pub fn detach_shader(self, shader: &GLShader) -> Self {
         unsafe { gl::DetachShader(self.0, shader.0) };
         self
     }
@@ -82,6 +103,7 @@ impl Program {
             Ok(MatrixLocation(loc))
         }
     }
+
     pub fn get_float_location(&self, name: &CStr) -> Result<F32Location, ProgramError> {
         let loc = unsafe { gl::GetUniformLocation(self.0, name.as_ptr()) };
         if loc < 0 {
@@ -89,11 +111,5 @@ impl Program {
         } else {
             Ok(F32Location(loc))
         }
-    }
-
-    pub fn delete(&self) {
-        unsafe {
-            gl::DeleteProgram(self.0);
-        };
     }
 }

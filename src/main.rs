@@ -1,81 +1,35 @@
+mod app;
+mod assets;
 mod bmp;
-mod gl_wraper;
+mod graphics;
 mod mat4;
-mod obj;
-mod shader;
-mod window;
+mod platform;
 
-use gl_wraper::*;
+use platform::*;
 use std::{
     env::args,
     thread::sleep,
     time::{Duration, Instant},
 };
 
-use obj::SColor;
-
 use crate::{
-    Program,
+    app::App,
     mat4::Matrix4,
-    obj::{OBJBuffer, OBJLoader},
-    shader::*,
+    model::{OBJLoader, OBJModel},
+    platform::{
+        array::VertexArray,
+        buffer::*,
+        polygone::{PolygonMode, polygon_mode},
+        program::*,
+    },
 };
+
 use sdl2::{event::WindowEvent, keyboard::Keycode, *};
 
 fn main() {
-    let sdl = sdl2::init().expect("not sdl ?");
-    let video = sdl.video().expect("no video ?");
-    let _event = sdl.event().expect("no event ?");
-    let mut event_pump = sdl.event_pump().expect("no event pump ?");
+    let mut app = App::new().expect("fail to load gl or sdl");
 
-    video.gl_load_library_default().expect("no opengl ?");
-
-    gl::load_with(|f_name| video.gl_get_proc_address(f_name) as *const _);
-
-    let mut win = window::get_window(&video).expect("no window ?");
-    let context = win.gl_create_context().expect("no context ?");
-    win.gl_make_current(&context).expect("no gl_make_current ?");
-
-    video
-        .gl_set_swap_interval(video::SwapInterval::VSync)
-        .expect("no vsync ?");
-
-    unsafe { gl::ClearColor(0.3, 0.3, 0.3, 1.) };
-    video.gl_attr().set_context_major_version(3);
-    video.gl_attr().set_context_minor_version(3);
-
-    unsafe { gl::Viewport(0, 0, win.size().0 as i32, win.size().1 as i32) };
-    unsafe { gl::Enable(gl::DEPTH_TEST) };
-    unsafe { gl::Enable(gl::DEPTH_CLAMP) };
-    unsafe { gl::Enable(gl::CULL_FACE) };
-    unsafe { gl::CullFace(gl::BACK) };
-    unsafe { gl::FrontFace(gl::CCW) };
-    unsafe { gl::DepthFunc(gl::LESS) };
-
-    let frag_shader = Shader::new(gl::FRAGMENT_SHADER)
-        .expect("no shader ?")
-        .source_file("./shaders/funny.frag")
-        .expect("no file ?")
-        .compile()
-        .status()
-        .unwrap();
-    let vert_shader = Shader::new(gl::VERTEX_SHADER)
-        .expect("no shader ?")
-        .source_file("./shaders/funny.vert")
-        .expect("no file ?")
-        .compile()
-        .status()
-        .unwrap();
-
-    let program = Program::new()
-        .expect("no program ?")
-        .attach_shader(&frag_shader)
-        .attach_shader(&vert_shader)
-        .link()
-        .status()
-        .unwrap()
-        .detach_shader(&frag_shader)
-        .detach_shader(&vert_shader);
+    let program = ShaderProgram::init("./shaders/funny.vert", "./shaders/funny.frag").unwrap();
 
     program.r#use();
 
@@ -88,20 +42,22 @@ fn main() {
 
     // let object_buffer_tmp = loader.load(&file).unwrap();
 
-    let object_buffers: Vec<OBJBuffer> = args().skip(1).map(|f| loader.load(&f).unwrap()).collect();
+    let object_buffers: Vec<OBJModel> = args().skip(1).map(|f| loader.load(&f).unwrap()).collect();
 
-    let object_buffer_tmp: OBJBuffer =
+    let object_buffer_tmp: OBJModel =
         object_buffers
             .iter()
-            .fold(OBJBuffer::default(), |mut acc, o| {
+            .fold(OBJModel::default(), |mut acc, o| {
                 println!("{:#?}", o.objects());
                 acc.append(o);
                 acc
             });
 
-    let mut object_buffer = OBJBuffer::default();
+    let mut object_buffer = OBJModel::default();
     object_buffer.append(&object_buffer_tmp);
     println!("{:#?}", object_buffer.objects());
+
+    object_buffer.objects_mut().retain_mut(|v| v.size != 0);
 
     object_buffer
         .verticles()
@@ -120,27 +76,11 @@ fn main() {
     //     .expect("no object ?");
 
     // println!("{:#?}", obj);
-    rand::random::<f32>();
-    let colors: Vec<SColor> = object_buffer
-        .verticles()
-        .iter()
-        .map(|_| {
-            SColor(
-                rand::random::<f32>(),
-                rand::random::<f32>(),
-                rand::random::<f32>(),
-            )
-        })
-        .collect();
-    // let indices: Vec<SIndice> = vec![SIndice(0, 1, 2), SIndice(1, 2, 3)];
 
     let vertex_array = VertexArray::new().expect("Couldn't make a VAO");
     vertex_array.bind();
     let vertex_buf: Buffer<Array> = Buffer::<Array>::new().expect("Couldn't make a VBO");
     vertex_buf.data(object_buffer.verticles().as_slice(), gl::STATIC_DRAW);
-
-    let color_buf: Buffer<Array> = Buffer::<Array>::new().expect("no colors ?");
-    color_buf.data(colors.as_slice(), gl::STATIC_DRAW);
 
     let indice_buf: Buffer<Element_Array> = Buffer::<Element_Array>::new().expect("no buffer?");
     indice_buf.data(object_buffer.vertex_indices().as_slice(), gl::STATIC_DRAW);
@@ -148,29 +88,33 @@ fn main() {
     let pos_loc = program.get_attribute_location(c"aPos").unwrap();
     pos_loc.enable();
     vertex_buf.bind();
-    pos_loc.assign(4, gl::FLOAT);
-    // let color_loc = program.get_attribute_location(c"Color").unwrap();
-    // color_loc.enable();
-    // color_buf.bind();
-    // color_loc.assign(3, gl::FLOAT);
+    pos_loc.set(4, gl::FLOAT);
 
     let model_loc = program.get_matrix_location(c"model").unwrap();
     let view_loc = program.get_matrix_location(c"view").unwrap();
     let projection_loc = program.get_matrix_location(c"projection").unwrap();
 
-    let mut scale_loop = (1..100).cycle();
-    let mut teta_y_loop1 = (0..200).cycle();
-    let mut teta_y_loop2 = (0..400).cycle();
-
-    let mut model_switch = object_buffer.objects().iter().cycle().peekable();
     let iTimeLoc = program.get_float_location(c"iTime").unwrap();
     let iResolution_loc = program.get_float_location(c"iResolution").unwrap();
     let iMouse_loc = program.get_float_location(c"iMouse").unwrap();
+    let i_quality = program.get_float_location(c"iSomething").unwrap();
+
+    let mut model_switch = object_buffer.objects().iter().cycle().peekable();
+    let mut scale_loop = (1..100).cycle();
+    let mut teta_y_loop1 = (0..200).cycle();
+    let mut teta_y_loop2 = (0..400).cycle();
     let ref_time = Instant::now();
     polygon_mode(PolygonMode::Fill);
+
+    iMouse_loc.set4(400., 450., 0., 0.);
+    i_quality.set1(150000.);
+    iResolution_loc.set3(2000., 2000., 1.0);
+    let mut quality_value = (0..500).step_by(50).cycle();
+    let mut mouse_pos: (f32, f32) = Default::default();
+
     'main_loop: loop {
         // handle events this frame
-        while let Some(ev) = event_pump.poll_event() {
+        while let Some(ev) = app.platform.event_pump.poll_event() {
             match ev {
                 event::Event::Quit { .. }
                 | event::Event::KeyDown {
@@ -181,6 +125,7 @@ fn main() {
                     win_event: WindowEvent::Resized(w, h),
                     ..
                 } => {
+                    iResolution_loc.set3(w as _, h as _, 1.0);
                     unsafe { gl::Viewport(0, 0, w, h) };
                 }
                 event::Event::KeyDown {
@@ -189,19 +134,25 @@ fn main() {
                 } => {
                     model_switch.next().expect("ah!?");
                 }
+                event::Event::KeyDown {
+                    keycode: Some(Keycode::KP_ENTER),
+                    ..
+                } => {
+                    i_quality.set1(quality_value.next().unwrap() as f32);
+                }
+                event::Event::MouseMotion { x, y, .. } => {
+                    iMouse_loc.set4(x as _, y as _, 0., 0.);
+                }
                 _ => (),
             }
         }
-        unsafe {
-            // Pour iTime
-            iTimeLoc.set1(ref_time.elapsed().as_millis() as f32 / 1000.);
+        // Pour iTime
+        iTimeLoc.set1(ref_time.elapsed().as_millis() as f32 / 1000.);
 
-            // Pour iResolution
-            iResolution_loc.set3(2000., 2000., 1.0);
+        // Pour iResolution
 
-            // Pour iMouse
-            iMouse_loc.set4(400., 450., 0., 0.);
-        }
+        // Pour iMouse
+
         let now = Instant::now();
         unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
         let model = Matrix4::ident();
@@ -211,8 +162,12 @@ fn main() {
         // let model = model * translate;
         let model = rot * model;
         // let model = scale * model;
-        let projection =
-            Matrix4::perspective(90., win.size().1 as f32 / win.size().0 as f32, 0.1, 100.);
+        let projection = Matrix4::perspective(
+            90.,
+            app.platform.window.size().1 as f32 / app.platform.window.size().0 as f32,
+            0.1,
+            100.,
+        );
         let view = Matrix4::ident();
         let view = Matrix4::look_at(
             &(10., 10., 10.).into(),
@@ -221,6 +176,8 @@ fn main() {
         );
         let obj = model_switch.peek().unwrap();
 
+        let scale = Matrix4::scale(5.);
+        let model = scale * model;
         model_loc.set(&model);
         view_loc.set(&view);
         projection_loc.set(&projection);
@@ -252,15 +209,16 @@ fn main() {
 
         let elapsed_time = now.elapsed();
         let time = elapsed_time.as_micros() as f32;
-        let _ = win.set_title(
+        let _ = app.platform.window.set_title(
             format!(
                 "{} us per frame: file:{} start: {} size: {}",
                 time, obj.name, obj.start, obj.size
             )
             .as_str(),
         );
+
         // here's where we could change the world state and draw.
         sleep(elapsed_time.abs_diff(Duration::from_millis(((1. / 30.) * 1000.) as u64)));
-        win.gl_swap_window();
+        app.platform.window.gl_swap_window();
     }
 }

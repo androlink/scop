@@ -15,7 +15,7 @@ impl AttributeLocation {
         self
     }
 
-    pub fn assign(&self, size: gl::types::GLint, type_: gl::types::GLenum) -> &Self {
+    pub fn set(&self, size: gl::types::GLint, type_: gl::types::GLenum) -> &Self {
         unsafe {
             gl::VertexAttribPointer(
                 self.0,

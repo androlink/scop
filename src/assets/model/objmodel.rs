@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(Default, Debug, Clone)]
-pub struct OBJBuffer {
+pub struct OBJModel {
     objects: Vec<OBJDescriptor>,
     verticles: Vec<SVertex>,
     textures: Vec<STexture>,
@@ -11,7 +11,7 @@ pub struct OBJBuffer {
     texture_indices: Vec<SIndice>,
 }
 
-impl OBJBuffer {
+impl OBJModel {
     pub fn append(&mut self, other: &Self) -> &Self {
         // level 0
         let verticles_offset = self.verticles.len() as u32;
@@ -46,7 +46,7 @@ impl OBJBuffer {
     }
 }
 
-impl OBJBuffer {
+impl OBJModel {
     pub fn verticles(&self) -> &Vec<SVertex> {
         &self.verticles
     }
@@ -70,7 +70,7 @@ impl OBJBuffer {
     }
 }
 
-impl OBJBuffer {
+impl OBJModel {
     pub fn verticles_mut(&mut self) -> &mut Vec<SVertex> {
         &mut self.verticles
     }

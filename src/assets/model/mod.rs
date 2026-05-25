@@ -1,9 +1,9 @@
 mod loader;
-mod obj_buffer;
+mod objmodel;
 mod vertex;
 
 pub use loader::OBJDescriptor;
 pub use loader::OBJLoader;
-pub use obj_buffer::OBJBuffer;
+pub use objmodel::OBJModel;
 
 pub use vertex::*;

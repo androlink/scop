@@ -1,13 +1,3 @@
-pub mod array;
-pub mod buffer;
-pub mod location;
-pub mod program;
-
-pub use array::VertexArray;
-pub use buffer::Buffer;
-pub use buffer::*;
-pub use program::Program;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PolygonMode {
     /// Just show the points.
