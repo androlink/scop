@@ -7,20 +7,19 @@ mod platform;
 
 use platform::*;
 use std::{
-    env::args,
     thread::sleep,
     time::{Duration, Instant},
 };
 
 use crate::{
     app::App,
+    assets::Assets,
     mat4::Matrix4,
-    model::{OBJLoader, OBJModel},
     platform::{
-        array::VertexArray,
         buffer::*,
         polygone::{PolygonMode, polygon_mode},
         program::*,
+        vertex_array::VertexArray,
     },
 };
 
@@ -28,48 +27,18 @@ use sdl2::{event::WindowEvent, keyboard::Keycode, *};
 
 fn main() {
     let mut app = App::new().expect("fail to load gl or sdl");
+    let mut assets = Assets::new();
+    let _ = assets
+        .load_shaders(&["assets/shaders/default", "assets/shaders/funny"])
+        .unwrap();
+    let _ = assets.load_models(&["assets/model/42.obj"]).unwrap();
+}
+
+/*
+fn main() {
+    let mut app = App::new().expect("fail to load gl or sdl");
 
     let program = ShaderProgram::init("./shaders/funny.vert", "./shaders/funny.frag").unwrap();
-
-    program.r#use();
-
-    let mut loader = OBJLoader::new();
-    loader.path("./resources/");
-    // for file in args() {
-    //     loader.load(file.as_str());
-    // }
-    // let file = args().collect::<Vec<String>>()[1].to_string();
-
-    // let object_buffer_tmp = loader.load(&file).unwrap();
-
-    let object_buffers: Vec<OBJModel> = args().skip(1).map(|f| loader.load(&f).unwrap()).collect();
-
-    let object_buffer_tmp: OBJModel =
-        object_buffers
-            .iter()
-            .fold(OBJModel::default(), |mut acc, o| {
-                println!("{:#?}", o.objects());
-                acc.append(o);
-                acc
-            });
-
-    let mut object_buffer = OBJModel::default();
-    object_buffer.append(&object_buffer_tmp);
-    println!("{:#?}", object_buffer.objects());
-
-    object_buffer.objects_mut().retain_mut(|v| v.size != 0);
-
-    object_buffer
-        .verticles()
-        .iter()
-        .enumerate()
-        .for_each(|(i, v)| println!("[{i}] : {v}"));
-
-    object_buffer
-        .vertex_indices()
-        .iter()
-        .enumerate()
-        .for_each(|(i, v)| println!("[{i}] : [{v}]"));
 
     // loader
     //     .load(std::env::args().collect::<Vec<String>>()[1].as_str())
@@ -222,3 +191,4 @@ fn main() {
         app.platform.window.gl_swap_window();
     }
 }
+*/

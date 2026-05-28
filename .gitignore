@@ -5,3 +5,4 @@ resources.tgz
 Cargo.lock
 
 .*
+assets

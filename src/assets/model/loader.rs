@@ -4,7 +4,7 @@ use std::{
     time::Instant,
 };
 
-use super::*;
+use crate::{assets::model::OBJModel, graphics::vertex::*};
 
 #[derive(Debug)]
 pub enum OBJError {
@@ -16,22 +16,15 @@ pub enum OBJError {
     NoObject,
 }
 
-#[derive(Debug, Clone)]
-pub struct OBJDescriptor {
-    pub name: String,
-    pub start: gl::types::GLsizei,
-    pub size: gl::types::GLsizei,
-}
-
 #[derive(Default)]
 pub struct OBJLoader {
     path: String,
 }
 
 impl OBJLoader {
-    pub fn new() -> Self {
+    pub fn new(path: &str) -> Self {
         OBJLoader {
-            path: "".to_string(),
+            path: path.to_string(),
         }
     }
 
@@ -41,78 +34,55 @@ impl OBJLoader {
     }
 
     pub fn load(&mut self, obj_file: &str) -> Result<OBJModel, OBJError> {
-        let mut buffer = OBJModel::default();
+        let mut model = OBJModel::default();
         let start = Instant::now();
         let file_path = self.path.to_string() + "/" + obj_file;
         let file = File::open(file_path.clone()).map_err(|o| OBJError::Io(o, file_path.clone()))?;
         let reader = BufReader::new(file);
-        buffer.objects_mut().push(OBJDescriptor {
-            name: obj_file.to_string(),
-            start: 0,
-            size: 0,
-        });
+
         for line in reader.lines() {
             let line = line.map_err(|o| OBJError::Io(o, file_path.clone()))?;
             let mut args_it = line.split_whitespace();
             if let Some(id) = args_it.next() {
                 let args: Vec<_> = args_it.clone().collect();
                 match id {
-                    "o" => {
-                        let v_start = buffer.vertex_indices().len() as gl::types::GLsizei;
-
-                        if let Some(obj) = buffer.objects_mut().last_mut() {
-                            obj.size = v_start - obj.start;
-                        }
-                        let name = args[0].to_string();
-                        let obj = OBJDescriptor {
-                            name,
-                            start: v_start,
-                            size: 0,
-                        };
-                        println!("o {}", obj.name);
-                        buffer.objects_mut().push(obj);
-                    }
                     "v" => {
                         let vertex = Self::parse_vertex(&args)
                             .map_err(|e| OBJError::Vertex(format!("load: {e:?}").to_string()))?;
                         //println!("{}", vertex);
-                        buffer.verticles_mut().push(vertex);
+                        model.verticles.push(vertex);
                     }
                     "vn" => {
                         let normal = Self::parse_vertex_normal(&args)
                             .map_err(|e| OBJError::Vertex(format!("load: {e:?}").to_string()))?;
-                        buffer.normals_mut().push(normal);
+                        model.normals.push(normal);
                     }
                     "vt" => {
                         let texture = Self::parse_vertex_texture(&args)
                             .map_err(|e| OBJError::Vertex(format!("load: {e:?}").to_string()))?;
-                        buffer.textures_mut().push(texture);
+                        model.textures.push(texture);
                     }
                     "f" => {
                         let mut face = Self::parse_face(&args)
                             .map_err(|e| OBJError::Vertex(format!("load: {e:?}").to_string()))?;
 
                         //println!("f {:?}", face);
-                        buffer.vertex_indices_mut().append(&mut face.0);
-                        buffer.texture_indices_mut().append(&mut face.1);
-                        buffer.normal_indices_mut().append(&mut face.2);
+                        model.vertex_indices.append(&mut face.0);
+                        model.texture_indices.append(&mut face.1);
+                        model.normal_indices.append(&mut face.2);
                     }
 
                     _ => {}
                 }
             }
         }
-        let end = buffer.vertex_indices().len() as gl::types::GLsizei;
 
-        if let Some(obj) = buffer.objects_mut().last_mut() {
-            obj.size = end - obj.start;
-        }
         let stop = start.elapsed().as_millis();
         println!("{} load in {} seconde", obj_file, stop as f32 / 1000.);
-        Ok(buffer)
+        Ok(model)
     }
 
-    fn parse_vertex(args: &[&str]) -> Result<SVertex, OBJError> {
+    fn parse_vertex(args: &[&str]) -> Result<SPosition, OBJError> {
         if args.len() < 3 || args.len() > 4 {
             return Err(OBJError::NotEnoughArg("parse_vertex".to_string()));
         }
@@ -133,7 +103,7 @@ impl OBJLoader {
             1.
         };
 
-        Ok(SVertex::new_xyzw(x, y, z, w))
+        Ok(SPosition::new_xyzw(x, y, z, w))
     }
 
     fn parse_vertex_normal(args: &[&str]) -> Result<SNormal, OBJError> {

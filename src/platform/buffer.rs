@@ -10,12 +10,16 @@ pub type EBO = Buffer<Element_Array>;
 
 pub struct Buffer<const BT: gl::types::GLenum>(pub gl::types::GLuint);
 impl<const BT: gl::types::GLenum> Buffer<BT> {
-    pub fn new() -> Option<Self> {
+    pub fn new() -> Result<Self, String> {
         let mut vbo = 0;
         unsafe {
             gl::GenBuffers(1, &mut vbo);
         }
-        if vbo != 0 { Some(Self(vbo)) } else { None }
+        if vbo != 0 {
+            Ok(Self(vbo))
+        } else {
+            Err("fail to generate buffer".to_string())
+        }
     }
 
     pub fn bind(&self) -> &Self {

@@ -1,9 +1,9 @@
-pub mod array;
 pub mod buffer;
 pub mod location;
 pub mod polygone;
 pub mod program;
 pub mod shader;
+pub mod vertex_array;
 
 use sdl2::{
     EventPump, Sdl, VideoSubsystem,
