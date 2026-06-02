@@ -13,7 +13,7 @@ use std::{
 
 use crate::{
     app::App,
-    assets::Assets,
+    assets::asset_manager::Assets,
     mat4::Matrix4,
     platform::{
         buffer::*,
@@ -28,10 +28,64 @@ use sdl2::{event::WindowEvent, keyboard::Keycode, *};
 fn main() {
     let mut app = App::new().expect("fail to load gl or sdl");
     let mut assets = Assets::new();
-    let _ = assets
+    assets
         .load_shaders(&["assets/shaders/default", "assets/shaders/funny"])
         .unwrap();
-    let _ = assets.load_models(&["assets/model/42.obj"]).unwrap();
+    assets.load_models(&["assets/model/teapot.obj"]).unwrap();
+    let mesh = assets.mesh("assets/model/teapot.obj").unwrap();
+    let mesh = graphics::mesh::Mesh::new(mesh).unwrap();
+
+    let shader = assets.shader("assets/shaders/default").unwrap();
+
+    let model_loc = shader.get_matrix_location(c"model").unwrap();
+    let view_loc = shader.get_matrix_location(c"view").unwrap();
+    let projection_loc = shader.get_matrix_location(c"projection").unwrap();
+
+    let time = Instant::now();
+    'main_loop: loop {
+        unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
+        while let Some(ev) = app.platform.event_pump.poll_event() {
+            match ev {
+                event::Event::Quit { .. }
+                | event::Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'main_loop,
+                event::Event::Window {
+                    win_event: WindowEvent::Resized(w, h),
+                    ..
+                } => {
+                    unsafe { gl::Viewport(0, 0, w, h) };
+                }
+                _ => (),
+            }
+        }
+        let view = Matrix4::look_at(
+            &(10., 10., 10.).into(),
+            &(00., 00., 00.).into(),
+            &(0., 1., 0.).into(),
+        );
+        let projection = Matrix4::perspective(
+            90.,
+            app.platform.window.size().1 as f32 / app.platform.window.size().0 as f32,
+            0.1,
+            100.,
+        );
+
+        shader.bind();
+        let model = Matrix4::ident();
+        let rot = Matrix4::rotate_y(time.elapsed().as_millis() as f32 / 1000.);
+        let model = rot * model;
+        model_loc.set(&model);
+        view_loc.set(&view);
+        projection_loc.set(&projection);
+        mesh.draw();
+        let val = unsafe { gl::GetError() };
+        if val != gl::NO_ERROR {
+            println!("gl error {}", val);
+        }
+        app.platform.window.gl_swap_window();
+    }
 }
 
 /*

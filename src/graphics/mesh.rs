@@ -1,40 +1,29 @@
 use std::mem::offset_of;
 
+use crate::assets::scop_obj::Vertex;
 use crate::platform::buffer::*;
 use crate::platform::vertex_array::*;
 
 pub struct Mesh {
-    vao: VertexArray,
-    vbo: VBO,
-    ebo: EBO,
-    index_count: i32,
-}
-
-struct MeshData {
-    verticles: Vec<f32>,
-    indices: Vec<i32>,
+    pub vao: VertexArray,
+    pub vbo: VBO,
+    pub ebo: EBO,
+    pub index_count: i32,
 }
 
 impl Mesh {
-    pub fn new(data: &MeshData) -> Result<Self, String> {
+    pub fn new(mesh: &crate::assets::scop_obj::Mesh) -> Result<Self, String> {
         let vao = VertexArray::new()?;
         let vbo = VBO::new()?;
         let ebo = EBO::new()?;
 
         vao.bind();
-        vbo.data(&data.verticles, gl::STATIC_DRAW);
-        ebo.data(&data.indices, gl::STATIC_DRAW);
+        vbo.data(&mesh.verticles, gl::STATIC_DRAW);
+        ebo.data(&mesh.indices, gl::STATIC_DRAW);
 
         unsafe { gl::EnableVertexAttribArray(0) };
         unsafe {
-            gl::VertexAttribPointer(
-                0,
-                3,
-                gl::FLOAT,
-                gl::FALSE,
-                size_of::<SVertex>() as _,
-                0 as _,
-            )
+            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, size_of::<Vertex>() as _, 0 as _)
         };
         unsafe { gl::EnableVertexAttribArray(1) };
         unsafe {
@@ -43,8 +32,8 @@ impl Mesh {
                 3,
                 gl::FLOAT,
                 gl::FALSE,
-                size_of::<SVertex>() as _,
-                offset_of!(SVertex, normal) as _,
+                size_of::<Vertex>() as _,
+                offset_of!(Vertex, normal) as _,
             )
         };
         unsafe { gl::EnableVertexAttribArray(2) };
@@ -54,8 +43,8 @@ impl Mesh {
                 2,
                 gl::FLOAT,
                 gl::FALSE,
-                size_of::<SVertex>() as _,
-                offset_of!(SVertex, texture) as _,
+                size_of::<Vertex>() as _,
+                offset_of!(Vertex, texture) as _,
             )
         };
 
@@ -65,7 +54,13 @@ impl Mesh {
             vao,
             vbo,
             ebo,
-            index_count: data.indices.len() as _,
+            index_count: mesh.indices.len() as _,
         })
+    }
+
+    pub fn draw(&self) {
+        self.vao.bind();
+        self.ebo.draw(gl::TRIANGLES, self.index_count);
+        self.vao.unbind();
     }
 }

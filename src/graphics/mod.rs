@@ -1,7 +1,5 @@
 pub mod mesh;
 
-mod manager;
-
 pub struct Graphics {}
 
 impl Graphics {

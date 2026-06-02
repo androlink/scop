@@ -39,15 +39,19 @@ impl ShaderProgram {
         Ok(program)
     }
 
+    pub fn bind(&self) {
+        unsafe { gl::UseProgram(self.0) };
+    }
+
+    pub fn unbind(&self) {
+        unsafe { gl::UseProgram(0) };
+    }
+
     pub fn new() -> Result<Self, String> {
         match unsafe { gl::CreateProgram() } {
             0 => Err("cannot create program".to_string()),
             n => Ok(Self(n)),
         }
-    }
-
-    pub fn r#use(&self) {
-        unsafe { gl::UseProgram(self.0) };
     }
 
     pub fn attach_shader(self, shader: &GLShader) -> Self {
