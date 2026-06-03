@@ -1,4 +1,5 @@
 use std::mem::offset_of;
+use std::time::Instant;
 
 use crate::assets::scop_obj::Vertex;
 use crate::platform::buffer::*;
@@ -47,6 +48,23 @@ impl Mesh {
                 offset_of!(Vertex, texture) as _,
             )
         };
+
+        let time = Instant::now();
+        let colors: Vec<_> = mesh
+            .verticles
+            .iter()
+            .map(|_| {
+                (
+                    time.elapsed().as_nanos() as f32 / 100. % 1.,
+                    time.elapsed().as_nanos() as f32 / 100. % 1.,
+                    time.elapsed().as_nanos() as f32 / 100. % 1.,
+                )
+            })
+            .collect();
+        let color_vbo = VBO::new()?;
+        color_vbo.data(&colors, gl::STATIC_DRAW);
+        unsafe { gl::EnableVertexAttribArray(3) };
+        unsafe { gl::VertexAttribPointer(3, 3, gl::FLOAT, gl::FALSE, 0 as _, 0 as _) };
 
         vao.unbind();
 

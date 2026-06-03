@@ -60,11 +60,13 @@ fn main() {
                 _ => (),
             }
         }
+
         let view = Matrix4::look_at(
-            &(10., 10., 10.).into(),
+            &(0., 0., 10.).into(),
             &(00., 00., 00.).into(),
             &(0., 1., 0.).into(),
         );
+
         let projection = Matrix4::perspective(
             90.,
             app.platform.window.size().1 as f32 / app.platform.window.size().0 as f32,
@@ -75,7 +77,10 @@ fn main() {
         shader.bind();
         let model = Matrix4::ident();
         let rot = Matrix4::rotate_y(time.elapsed().as_millis() as f32 / 1000.);
+        // let scale = Matrix4::scale((time.elapsed().as_millis() as f32 / 1000.).sin());
+        let scale = Matrix4::scale(1.);
         let model = rot * model;
+        let model = scale * model;
         model_loc.set(&model);
         view_loc.set(&view);
         projection_loc.set(&projection);
