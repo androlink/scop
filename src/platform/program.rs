@@ -23,11 +23,13 @@ impl ShaderProgram {
         let frag_shader = GLShader::new(gl::FRAGMENT_SHADER)?
             .source_file(fragment)?
             .compile()
-            .status()?;
+            .compile_status()
+            .map_err(|e| "fragment compile: ".to_string() + &e)?;
         let vert_shader = GLShader::new(gl::VERTEX_SHADER)?
             .source_file(vertex)?
             .compile()
-            .status()?;
+            .compile_status()
+            .map_err(|e| "vertex: ".to_string() + &e)?;
 
         let program = ShaderProgram::new()?
             .attach_shader(&frag_shader)

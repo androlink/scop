@@ -1,12 +1,10 @@
 #version 330 core
 
-in VS_OUTPUT {
-    vec3 Color;
-} IN;
+in vec3 FragmentColor;
 
 out vec4 Color;
 
 void main()
 {
-    Color = vec4(IN.Color, 1.f);
+    Color = vec4(FragmentColor, 1.f);
 }

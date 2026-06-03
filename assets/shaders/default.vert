@@ -9,12 +9,10 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-out VS_OUTPUT {
-    vec3 Color;
-} OUT;
+out vec3 FragmentColor;
 
 void main()
 {
     gl_Position = projection * view * model * vec4(Position, 1.0);
-    OUT.Color = Color;
+    FragmentColor = vec3(projection * vec4(Position, 1.0));
 }

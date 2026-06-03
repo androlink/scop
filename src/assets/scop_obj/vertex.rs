@@ -4,6 +4,7 @@ use core::fmt;
 pub struct Vertex {
     pub position: Position,
     pub normal: Normal,
+    pub color: Color,
     pub texture: Texture,
 }
 
@@ -20,6 +21,14 @@ pub struct Normal {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Color {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32,
 }
 
 #[derive(Debug, Clone, Copy)]

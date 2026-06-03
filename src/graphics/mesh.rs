@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::mem::offset_of;
 use std::time::Instant;
 
@@ -49,22 +50,17 @@ impl Mesh {
             )
         };
 
-        let time = Instant::now();
-        let colors: Vec<_> = mesh
-            .verticles
-            .iter()
-            .map(|_| {
-                (
-                    time.elapsed().as_nanos() as f32 / 100. % 1.,
-                    time.elapsed().as_nanos() as f32 / 100. % 1.,
-                    time.elapsed().as_nanos() as f32 / 100. % 1.,
-                )
-            })
-            .collect();
-        let color_vbo = VBO::new()?;
-        color_vbo.data(&colors, gl::STATIC_DRAW);
         unsafe { gl::EnableVertexAttribArray(3) };
-        unsafe { gl::VertexAttribPointer(3, 3, gl::FLOAT, gl::FALSE, 0 as _, 0 as _) };
+        unsafe {
+            gl::VertexAttribPointer(
+                3,
+                3,
+                gl::FLOAT,
+                gl::FALSE,
+                size_of::<Vertex>() as _,
+                offset_of!(Vertex, color) as _,
+            )
+        };
 
         vao.unbind();
 

@@ -7,6 +7,7 @@ mod platform;
 
 use platform::*;
 use std::{
+    ffi::CString,
     thread::sleep,
     time::{Duration, Instant},
 };
@@ -31,9 +32,19 @@ fn main() {
     assets
         .load_shaders(&["assets/shaders/default", "assets/shaders/funny"])
         .unwrap();
-    assets.load_models(&["assets/model/teapot.obj"]).unwrap();
-    let mesh = assets.mesh("assets/model/teapot.obj").unwrap();
-    let mesh = graphics::mesh::Mesh::new(mesh).unwrap();
+    assets
+        .load_models(&[
+            "assets/model/cube.obj",
+            "assets/model/teapot.obj",
+            "assets/model/teapot2.obj",
+        ])
+        .unwrap();
+    let cube_mesh =
+        graphics::mesh::Mesh::new(assets.mesh("assets/model/cube.obj").unwrap()).unwrap();
+    let teapot_mesh =
+        graphics::mesh::Mesh::new(assets.mesh("assets/model/teapot.obj").unwrap()).unwrap();
+    let teapot2_mesh =
+        graphics::mesh::Mesh::new(assets.mesh("assets/model/teapot2.obj").unwrap()).unwrap();
 
     let shader = assets.shader("assets/shaders/default").unwrap();
 
@@ -41,6 +52,9 @@ fn main() {
     let view_loc = shader.get_matrix_location(c"view").unwrap();
     let projection_loc = shader.get_matrix_location(c"projection").unwrap();
 
+    let meshs = [&cube_mesh, &teapot_mesh, &teapot2_mesh];
+    let mut mesh_loop = meshs.iter().cycle();
+    let mut draw_mesh = mesh_loop.next().unwrap();
     let time = Instant::now();
     'main_loop: loop {
         unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
@@ -57,6 +71,10 @@ fn main() {
                 } => {
                     unsafe { gl::Viewport(0, 0, w, h) };
                 }
+                event::Event::KeyDown {
+                    keycode: Some(Keycode::RETURN),
+                    ..
+                } => draw_mesh = mesh_loop.next().unwrap(),
                 _ => (),
             }
         }
@@ -74,17 +92,21 @@ fn main() {
             100.,
         );
 
-        shader.bind();
-        let model = Matrix4::ident();
-        let rot = Matrix4::rotate_y(time.elapsed().as_millis() as f32 / 1000.);
-        // let scale = Matrix4::scale((time.elapsed().as_millis() as f32 / 1000.).sin());
-        let scale = Matrix4::scale(1.);
-        let model = rot * model;
-        let model = scale * model;
-        model_loc.set(&model);
         view_loc.set(&view);
         projection_loc.set(&projection);
-        mesh.draw();
+
+        shader.bind();
+        let model = Matrix4::ident();
+        let roty = Matrix4::rotate_y((time.elapsed().as_millis() as f32 / 1000.).sin() * 2.);
+        let rotx = Matrix4::rotate_x((time.elapsed().as_millis() as f32 / 500.).sin());
+        // let scale = Matrix4::scale((time.elapsed().as_millis() as f32 / 1000.).sin());
+        let scale = Matrix4::scale(1.);
+        let model = scale * model;
+        let model = roty * model;
+        let model = rotx * model;
+        model_loc.set(&model);
+        draw_mesh.draw();
+
         let val = unsafe { gl::GetError() };
         if val != gl::NO_ERROR {
             println!("gl error {}", val);

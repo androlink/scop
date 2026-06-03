@@ -2,10 +2,12 @@ use std::{
     fmt::Display,
     fs::File,
     io::{BufRead, BufReader},
+    time::Instant,
     vec,
 };
 
 mod vertex;
+use sdl2::libc::sched_param;
 pub use vertex::*;
 
 #[derive(Debug, Default)]
@@ -123,8 +125,17 @@ fn index_to_vertex(
             .get((index.vt_i as usize) * 2 + 1)
             .ok_or(LoadError::FaceTexCoordOutOfBounds)?,
     };
+    let rand = rand::random::<u32>();
+    let scale = rand as f32 / u32::MAX as f32;
+    let color = Color {
+        r: scale,
+        g: scale,
+        b: scale,
+        a: 1.,
+    };
     Ok(Vertex {
         position,
+        color,
         normal,
         texture,
     })

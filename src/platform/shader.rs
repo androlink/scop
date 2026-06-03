@@ -26,6 +26,7 @@ impl GLShader {
         }
         self
     }
+
     pub fn source_file(self, path: &str) -> Result<Self, String> {
         match read_to_string(path) {
             Err(e) => Err(e.to_string()),
@@ -38,7 +39,7 @@ impl GLShader {
         self
     }
 
-    pub fn status(self) -> Result<Self, String> {
+    pub fn compile_status(self) -> Result<Self, String> {
         let mut success: gl::types::GLint = 1;
         unsafe { gl::GetShaderiv(self.0, gl::COMPILE_STATUS, &mut success) };
 
@@ -50,11 +51,12 @@ impl GLShader {
                 gl::GetShaderInfoLog(
                     self.0,
                     len,
-                    std::ptr::null_mut(),
+                    &mut len,
                     buf.as_mut_ptr() as *mut gl::types::GLchar,
                 )
             };
-            return Err(String::from_utf8_lossy(buf.as_slice()).to_string());
+            unsafe { buf.set_len(len as usize) };
+            return Err(String::from_utf8(buf).unwrap_or("unkown error".to_string()));
         }
         Ok(self)
     }
