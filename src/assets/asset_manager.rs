@@ -1,4 +1,4 @@
-use std::{collections::HashMap, default, sync::Arc};
+use std::{collections::HashMap, default, sync::Arc, time::Instant};
 
 use crate::{
     assets::{mesh::Mesh, texture::Texture},
@@ -42,10 +42,12 @@ impl Assets {
 
     pub fn load_models(&mut self, models_name: &[&str]) -> Result<(), String> {
         for model_name in models_name {
+            let now = Instant::now();
             let m = super::mesh::load_file(model_name).map_err(|e| e.to_string())?;
             for m in m {
                 self.models.insert(m.name, m.mesh);
             }
+            println!("{}s", now.elapsed().as_millis() as f32 / 1000.)
         }
         Ok(())
     }

@@ -3,6 +3,7 @@ pub mod location;
 pub mod polygone;
 pub mod program;
 pub mod shader;
+pub mod texture;
 pub mod vertex_array;
 
 use sdl2::{
@@ -46,7 +47,7 @@ impl Platform {
         unsafe { gl::ClearColor(0.3, 0.3, 0.3, 1.) };
         unsafe { gl::Enable(gl::DEPTH_TEST) };
         unsafe { gl::Enable(gl::DEPTH_CLAMP) };
-        unsafe { gl::Enable(gl::CULL_FACE) };
+        // unsafe { gl::Enable(gl::CULL_FACE) };
         unsafe { gl::CullFace(gl::BACK) };
         unsafe { gl::FrontFace(gl::CCW) };
         unsafe { gl::DepthFunc(gl::LESS) };

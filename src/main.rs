@@ -35,6 +35,7 @@ fn main() {
             "assets/shaders/default",
             "assets/shaders/funny",
             "assets/shaders/gray_color",
+            "assets/shaders/texture",
         ])
         .unwrap();
     assets
@@ -42,6 +43,8 @@ fn main() {
             "assets/model/cube.obj",
             "assets/model/teapot.obj",
             "assets/model/teapot2.obj",
+            "assets/model/42.obj",
+            "assets/model/bugatti.obj",
         ])
         .unwrap();
     let cube_mesh =
@@ -50,14 +53,25 @@ fn main() {
         graphics::mesh::Mesh::new(assets.mesh("assets/model/teapot.obj").unwrap()).unwrap();
     let teapot2_mesh =
         graphics::mesh::Mesh::new(assets.mesh("assets/model/teapot2.obj").unwrap()).unwrap();
+    let bugatti_mesh =
+        graphics::mesh::Mesh::new(assets.mesh("assets/model/bugatti.obj").unwrap()).unwrap();
+    let ft_mesh = graphics::mesh::Mesh::new(assets.mesh("assets/model/42.obj").unwrap()).unwrap();
 
-    let shader = assets.shader("assets/shaders/gray_color").unwrap();
+    let shader = assets.shader("assets/shaders/texture").unwrap();
+    let texture = platform::texture::Texture::new().unwrap();
+    texture.generate(2, 2, &[0, 0, 0, 255, 255, 255, 0, 0, 0, 255, 255, 255]);
 
     let model_loc = shader.get_matrix_location(c"model").unwrap();
     let view_loc = shader.get_matrix_location(c"view").unwrap();
     let projection_loc = shader.get_matrix_location(c"projection").unwrap();
 
-    let meshs = [&cube_mesh, &teapot_mesh, &teapot2_mesh];
+    let meshs = [
+        &cube_mesh,
+        &teapot_mesh,
+        &teapot2_mesh,
+        &bugatti_mesh,
+        &ft_mesh,
+    ];
     let mut mesh_loop = meshs.iter().cycle();
     let mut draw_mesh = mesh_loop.next().unwrap();
     let time = Instant::now();
@@ -102,8 +116,8 @@ fn main() {
 
         shader.bind();
         let model = Matrix4::ident();
-        let roty = Matrix4::rotate_y((time.elapsed().as_millis() as f32 / 1000.).sin() * 2.);
-        let rotx = Matrix4::rotate_x((time.elapsed().as_millis() as f32 / 500.).sin());
+        let roty = Matrix4::rotate_y((time.elapsed().as_millis() as f32 / 1000. * 0.5).sin() * 2.);
+        let rotx = Matrix4::rotate_x((time.elapsed().as_millis() as f32 / 500. * 0.5).sin());
         // let scale = Matrix4::scale((time.elapsed().as_millis() as f32 / 1000.).sin());
         let scale = Matrix4::scale(1.);
         let model = scale * model;

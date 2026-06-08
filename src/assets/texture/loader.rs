@@ -1,8 +1,4 @@
-use std::{
-    fs::{self, File},
-    io::{BufRead, BufReader},
-    time::Instant,
-};
+use std::{fs, time::Instant};
 
 use super::texture::Texture;
 

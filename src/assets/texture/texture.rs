@@ -1,4 +1,6 @@
 #[derive(Default)]
 pub struct Texture {
-    data: Vec<u8>,
+    pub data: Vec<u8>,
+    pub width: i32,
+    pub height: i32,
 }
