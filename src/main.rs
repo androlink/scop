@@ -2,6 +2,7 @@ mod app;
 mod assets;
 mod bmp;
 mod graphics;
+mod manager;
 mod mat4;
 mod platform;
 
@@ -30,7 +31,11 @@ fn main() {
     let mut app = App::new().expect("fail to load gl or sdl");
     let mut assets = Assets::new();
     assets
-        .load_shaders(&["assets/shaders/default", "assets/shaders/funny"])
+        .load_shaders(&[
+            "assets/shaders/default",
+            "assets/shaders/funny",
+            "assets/shaders/gray_color",
+        ])
         .unwrap();
     assets
         .load_models(&[
@@ -46,7 +51,7 @@ fn main() {
     let teapot2_mesh =
         graphics::mesh::Mesh::new(assets.mesh("assets/model/teapot2.obj").unwrap()).unwrap();
 
-    let shader = assets.shader("assets/shaders/default").unwrap();
+    let shader = assets.shader("assets/shaders/gray_color").unwrap();
 
     let model_loc = shader.get_matrix_location(c"model").unwrap();
     let view_loc = shader.get_matrix_location(c"view").unwrap();

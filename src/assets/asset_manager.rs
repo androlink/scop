@@ -1,20 +1,16 @@
+use std::{collections::HashMap, default, sync::Arc};
+
 use crate::{
-    assets::{scop_obj::Mesh, texture::Texture},
+    assets::{mesh::Mesh, texture::Texture},
+    manager::Storage,
     platform::program::ShaderProgram,
 };
 
-use std::collections::HashMap;
-
 #[derive(Default)]
 pub struct Assets {
-    assets_path: String,
-    shader_path: String,
-    model_path: String,
-    texture_path: String,
-
-    shaders: HashMap<String, ShaderProgram>,
-    meshs: HashMap<String, Mesh>,
-    textures: HashMap<String, Texture>,
+    shaders: Storage<String, ShaderProgram>,
+    models: Storage<String, Mesh>,
+    textures: Storage<String, Texture>,
 }
 
 impl Assets {
@@ -25,7 +21,10 @@ impl Assets {
     }
 
     pub fn load_shaders(&mut self, shaders_name: &[&str]) -> Result<(), String> {
-        for shader_name in shaders_name {
+        for shader_name in shaders_name.iter() {
+            if self.shaders.has(*shader_name) {
+                continue;
+            }
             let shader_file = shader_name.to_string();
             self.shaders.insert(
                 shader_name.to_string(),
@@ -37,30 +36,28 @@ impl Assets {
         }
         Ok(())
     }
+    pub fn shader(&mut self, name: &str) -> Option<&Arc<ShaderProgram>> {
+        self.shaders.get(name)
+    }
 
     pub fn load_models(&mut self, models_name: &[&str]) -> Result<(), String> {
         for model_name in models_name {
-            let m = super::scop_obj::load_file(model_name).map_err(|e| e.to_string())?;
+            let m = super::mesh::load_file(model_name).map_err(|e| e.to_string())?;
             for m in m {
-                self.meshs.insert(m.name, m.mesh);
+                self.models.insert(m.name, m.mesh);
             }
         }
         Ok(())
     }
-
-    pub fn load_textures(&mut self, textures_name: &[&str]) -> Result<(), String> {
-        Ok(())
+    pub fn mesh(&mut self, name: &str) -> Option<&Arc<Mesh>> {
+        self.models.get(name)
     }
 
-    pub fn texture(&mut self, name: &str) -> Option<&Texture> {
-        self.textures.get(name)
-    }
+    // pub fn load_textures(&mut self, textures_name: &[&str]) -> Result<(), String> {
+    //     Ok(())
+    // }
 
-    pub fn shader(&mut self, name: &str) -> Option<&ShaderProgram> {
-        self.shaders.get(name)
-    }
-
-    pub fn mesh(&mut self, name: &str) -> Option<&Mesh> {
-        self.meshs.get(name)
-    }
+    // pub fn texture(&mut self, name: &str) -> Option<&Texture> {
+    //     self.textures.get(name)
+    // }
 }

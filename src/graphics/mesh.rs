@@ -1,8 +1,6 @@
-use std::any::Any;
 use std::mem::offset_of;
-use std::time::Instant;
 
-use crate::assets::scop_obj::Vertex;
+use crate::assets::mesh::Vertex;
 use crate::platform::buffer::*;
 use crate::platform::vertex_array::*;
 
@@ -14,7 +12,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn new(mesh: &crate::assets::scop_obj::Mesh) -> Result<Self, String> {
+    pub fn new(mesh: &crate::assets::mesh::Mesh) -> Result<Self, String> {
         let vao = VertexArray::new()?;
         let vbo = VBO::new()?;
         let ebo = EBO::new()?;

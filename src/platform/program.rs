@@ -18,6 +18,12 @@ pub enum ProgramError {
     LOCATION(CString),
 }
 
+impl Default for ShaderProgram {
+    fn default() -> Self {
+        Self(0)
+    }
+}
+
 impl ShaderProgram {
     pub fn init(vertex: &str, fragment: &str) -> Result<Self, String> {
         let frag_shader = GLShader::new(gl::FRAGMENT_SHADER)?
