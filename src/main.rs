@@ -6,6 +6,7 @@ mod manager;
 mod mat4;
 mod platform;
 
+use gl::MemoryBarrier;
 use platform::*;
 use std::{
     ffi::CString,
@@ -15,21 +16,17 @@ use std::{
 
 use crate::{
     app::App,
-    assets::asset_manager::Assets,
+    assets::{asset_manager::Assets, texture::bmp_loader::load_bmp},
     mat4::Matrix4,
-    platform::{
-        buffer::*,
-        polygone::{PolygonMode, polygon_mode},
-        program::*,
-        vertex_array::VertexArray,
-    },
+    platform::buffer::*,
 };
 
 use sdl2::{event::WindowEvent, keyboard::Keycode, *};
 
-fn main() {
+fn main() -> Result<(), String> {
     let mut app = App::new().expect("fail to load gl or sdl");
     let mut assets = Assets::new();
+
     assets
         .load_shaders(&[
             "assets/shaders/default",
@@ -44,7 +41,8 @@ fn main() {
             "assets/model/teapot.obj",
             "assets/model/teapot2.obj",
             "assets/model/42.obj",
-            "assets/model/bugatti.obj",
+            // "assets/model/bugatti.obj",
+            "assets/model/square.obj",
         ])
         .unwrap();
     let cube_mesh =
@@ -53,27 +51,41 @@ fn main() {
         graphics::mesh::Mesh::new(assets.mesh("assets/model/teapot.obj").unwrap()).unwrap();
     let teapot2_mesh =
         graphics::mesh::Mesh::new(assets.mesh("assets/model/teapot2.obj").unwrap()).unwrap();
-    let bugatti_mesh =
-        graphics::mesh::Mesh::new(assets.mesh("assets/model/bugatti.obj").unwrap()).unwrap();
+    // let bugatti_mesh =
+    //     graphics::mesh::Mesh::new(assets.mesh("assets/model/bugatti.obj").unwrap()).unwrap();
     let ft_mesh = graphics::mesh::Mesh::new(assets.mesh("assets/model/42.obj").unwrap()).unwrap();
+    let square =
+        graphics::mesh::Mesh::new(assets.mesh("assets/model/square.obj").unwrap()).unwrap();
 
-    let shader = assets.shader("assets/shaders/texture").unwrap();
+    let texture_data = load_bmp("assets/textures/default.bmp").unwrap();
     let texture = platform::texture::Texture::new().unwrap();
-    texture.generate(2, 2, &[0, 0, 0, 255, 255, 255, 0, 0, 0, 255, 255, 255]);
-
-    let model_loc = shader.get_matrix_location(c"model").unwrap();
-    let view_loc = shader.get_matrix_location(c"view").unwrap();
-    let projection_loc = shader.get_matrix_location(c"projection").unwrap();
+    texture.generate(
+        2,
+        2,
+        &[
+            0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 0,
+        ],
+    );
+    // texture.generate(texture_data.width, texture_data.height, &texture_data.data);
 
     let meshs = [
+        &square,
         &cube_mesh,
         &teapot_mesh,
         &teapot2_mesh,
-        &bugatti_mesh,
+        // &bugatti_mesh,
         &ft_mesh,
     ];
+
     let mut mesh_loop = meshs.iter().cycle();
     let mut draw_mesh = mesh_loop.next().unwrap();
+
+    let default_shader = assets.shader("assets/shaders/default").unwrap();
+    let gray_shader = assets.shader("assets/shaders/gray_color").unwrap();
+    let texture_shader = assets.shader("assets/shaders/texture").unwrap();
+    let shaders = [&default_shader, &gray_shader, &texture_shader];
+    let mut shader_loop = shaders.iter().cycle();
+    let mut draw_shader = shader_loop.next().unwrap();
     let time = Instant::now();
     'main_loop: loop {
         unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
@@ -94,6 +106,13 @@ fn main() {
                     keycode: Some(Keycode::RETURN),
                     ..
                 } => draw_mesh = mesh_loop.next().unwrap(),
+                event::Event::KeyDown {
+                    keycode: Some(Keycode::SPACE),
+                    ..
+                } => {
+                    draw_shader = shader_loop.next().unwrap();
+                    draw_shader.bind();
+                }
                 _ => (),
             }
         }
@@ -110,11 +129,10 @@ fn main() {
             0.1,
             100.,
         );
+        draw_shader.set_matrix(c"view", &view);
+        draw_shader.set_matrix(c"projection", &projection);
 
-        view_loc.set(&view);
-        projection_loc.set(&projection);
-
-        shader.bind();
+        draw_shader.bind();
         let model = Matrix4::ident();
         let roty = Matrix4::rotate_y((time.elapsed().as_millis() as f32 / 1000. * 0.5).sin() * 2.);
         let rotx = Matrix4::rotate_x((time.elapsed().as_millis() as f32 / 500. * 0.5).sin());
@@ -123,7 +141,7 @@ fn main() {
         let model = scale * model;
         let model = roty * model;
         let model = rotx * model;
-        model_loc.set(&model);
+        draw_shader.set_matrix(c"model", &model);
         draw_mesh.draw();
 
         let val = unsafe { gl::GetError() };
@@ -132,6 +150,7 @@ fn main() {
         }
         app.platform.window.gl_swap_window();
     }
+    Ok(())
 }
 
 /*

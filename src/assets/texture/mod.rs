@@ -1,5 +1,9 @@
-mod loader;
-mod texture;
+pub mod bmp_loader;
+pub mod loader;
 
-pub use loader::BMPLoader;
-pub use texture::Texture;
+#[derive(Default)]
+pub struct Texture {
+    pub data: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
+}

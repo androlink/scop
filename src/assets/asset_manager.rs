@@ -22,9 +22,12 @@ impl Assets {
 
     pub fn load_shaders(&mut self, shaders_name: &[&str]) -> Result<(), String> {
         for shader_name in shaders_name.iter() {
-            if self.shaders.has(*shader_name) {
-                continue;
-            }
+            self.load_shader(shader_name)?;
+        }
+        Ok(())
+    }
+    pub fn load_shader(&mut self, shader_name: &str) -> Result<(), String> {
+        if !self.shaders.has(shader_name) {
             let shader_file = shader_name.to_string();
             self.shaders.insert(
                 shader_name.to_string(),
@@ -33,17 +36,18 @@ impl Assets {
                     &(shader_file.clone() + ".frag"),
                 )?,
             );
-        }
+        };
         Ok(())
     }
-    pub fn shader(&mut self, name: &str) -> Option<&Arc<ShaderProgram>> {
+
+    pub fn shader(&self, name: &str) -> Option<&Arc<ShaderProgram>> {
         self.shaders.get(name)
     }
 
     pub fn load_models(&mut self, models_name: &[&str]) -> Result<(), String> {
         for model_name in models_name {
             let now = Instant::now();
-            let m = super::mesh::load_file(model_name).map_err(|e| e.to_string())?;
+            let m = super::mesh::load_obj(model_name).map_err(|e| e.to_string())?;
             for m in m {
                 self.models.insert(m.name, m.mesh);
             }
@@ -51,7 +55,8 @@ impl Assets {
         }
         Ok(())
     }
-    pub fn mesh(&mut self, name: &str) -> Option<&Arc<Mesh>> {
+
+    pub fn mesh(&self, name: &str) -> Option<&Arc<Mesh>> {
         self.models.get(name)
     }
 

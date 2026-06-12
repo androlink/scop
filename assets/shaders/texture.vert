@@ -8,13 +8,16 @@ layout(location = 3) in vec3 Color;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-
-out vec3 FragmentColor;
-out vec2 uv;
+out s_frag {
+    vec3 color;
+    vec2 uv;
+    vec4 position;
+} FRAG;
 
 void main()
 {
     gl_Position = projection * view * model * vec4(Position, 1.0);
-    FragmentColor = Color;
-    uv = Texcoord;
+    FRAG.color = Color;
+    FRAG.uv = Texcoord;
+    FRAG.position = gl_Position;
 }

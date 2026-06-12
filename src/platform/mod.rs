@@ -65,3 +65,8 @@ impl Platform {
             .build()
     }
 }
+
+pub trait Bind {
+    fn bind(&self);
+    fn unbind(&self);
+}

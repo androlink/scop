@@ -2,12 +2,10 @@ use std::{
     fmt::Display,
     fs::File,
     io::{BufRead, BufReader},
-    time::Instant,
     vec,
 };
 
 mod vertex;
-use sdl2::libc::sched_param;
 pub use vertex::*;
 
 #[derive(Debug, Default)]
@@ -30,7 +28,7 @@ impl Model {
 }
 
 #[derive(Default)]
-struct OBJLoadContext {
+struct ParseContext {
     models: Vec<Model>,
     pos: Vec<f32>,
     texcoord: Vec<f32>,
@@ -40,8 +38,8 @@ struct OBJLoadContext {
     name: String,
 }
 
-impl OBJLoadContext {
-    fn apply_model(&mut self) -> Result<(), LoadError> {
+impl ParseContext {
+    fn apply_model(&mut self) -> Result<(), OBJLoadError> {
         let mesh = create_mesh(
             &self.faces,
             &self.pos,
@@ -62,7 +60,7 @@ fn create_mesh(
     normals: &[f32],
     textures: &[f32],
     colors: &[f32],
-) -> Result<Mesh, LoadError> {
+) -> Result<Mesh, OBJLoadError> {
     let triangles =
         faces.iter().try_fold(
             Vec::<FaceIndex>::new(),
@@ -74,26 +72,14 @@ fn create_mesh(
                 Err(e) => Err(e),
             },
         )?;
-    let mut indices = vec![];
-    let vertex =
-        triangles
-            .iter()
-            .enumerate()
-            .try_fold(
-                Vec::<Vertex>::new(),
-                |mut acc, (i, f)| match index_to_vertex(f, positions, normals, textures, colors) {
-                    Ok(vertex) => {
-                        indices.push(i as u32);
-                        acc.push(vertex);
-                        Ok(acc)
-                    }
-                    Err(e) => Err(e),
-                },
-            )?;
-    Ok(Mesh {
-        verticles: vertex,
-        indices,
-    })
+
+    let indices = (0u32..triangles.len() as u32).collect();
+    let verticles = triangles
+        .iter()
+        .map(|f| index_to_vertex(f, positions, normals, textures, colors))
+        .collect::<Result<Vec<Vertex>, OBJLoadError>>()?;
+
+    Ok(Mesh { verticles, indices })
 }
 
 fn index_to_vertex(
@@ -102,10 +88,10 @@ fn index_to_vertex(
     normals: &[f32],
     textures: &[f32],
     colors: &[f32],
-) -> Result<Vertex, LoadError> {
+) -> Result<Vertex, OBJLoadError> {
     let vi = (index.v_i as usize) * 3;
     let Some(position) = positions.get((vi)..(vi + 3)) else {
-        return Err(LoadError::FaceVertexOutOfBounds);
+        return Err(OBJLoadError::FaceVertexOutOfBounds);
     };
     let position = Position {
         x: position[0],
@@ -116,7 +102,7 @@ fn index_to_vertex(
 
     let vni = (index.vn_i as usize) * 3;
     let Some(normal) = normals.get((vni)..(vni + 3)) else {
-        return Err(LoadError::FaceNormalOutOfBounds);
+        return Err(OBJLoadError::FaceNormalOutOfBounds);
     };
     let normal = Normal {
         x: normal[0],
@@ -125,7 +111,7 @@ fn index_to_vertex(
     };
     let vti = (index.vt_i as usize) * 2;
     let Some(texture) = textures.get((vti)..(vti + 2)) else {
-        return Err(LoadError::FaceTexCoordOutOfBounds);
+        return Err(OBJLoadError::FaceTexCoordOutOfBounds);
     };
     let texture = Texture {
         x: texture[0],
@@ -134,7 +120,7 @@ fn index_to_vertex(
 
     let vci = (index.vc_i as usize) * 3;
     let Some(color) = colors.get((vci)..(vci + 3)) else {
-        return Err(LoadError::FaceTexCoordOutOfBounds);
+        return Err(OBJLoadError::FaceTexCoordOutOfBounds);
     };
     let color = Color {
         r: color[0],
@@ -151,9 +137,9 @@ fn index_to_vertex(
     })
 }
 
-fn triangulate_face(face: &Face) -> Result<Vec<FaceIndex>, LoadError> {
+fn triangulate_face(face: &Face) -> Result<Vec<FaceIndex>, OBJLoadError> {
     let mut triangle: Vec<FaceIndex> = vec![];
-    let origin = face.indices.first().ok_or(LoadError::GenericFailure)?;
+    let origin = face.indices.first().ok_or(OBJLoadError::GenericFailure)?;
     for (&b, &c) in face.indices.iter().skip(1).zip(face.indices.iter().skip(2)) {
         triangle.push(*origin);
         triangle.push(b);
@@ -175,8 +161,8 @@ struct Face {
     pub indices: Vec<FaceIndex>,
 }
 
-pub fn load_file(file: &str) -> Result<Vec<Model>, LoadError> {
-    let mut context = OBJLoadContext {
+pub fn load_obj(file: &str) -> Result<Vec<Model>, OBJLoadError> {
+    let mut context = ParseContext {
         name: file.to_string(),
         ..Default::default()
     };
@@ -184,10 +170,10 @@ pub fn load_file(file: &str) -> Result<Vec<Model>, LoadError> {
     context.normal.append(&mut vec![0., 0., 0.]);
     context.texcoord.append(&mut vec![0., 0.]);
     context.colors.append(&mut vec![0., 0., 0.]);
-    let file = File::open(file).map_err(|_| LoadError::OpenFileFailed)?;
+    let file = File::open(file).map_err(|_| OBJLoadError::OpenFileFailed)?;
     let read_buffer = BufReader::new(file);
     for line in read_buffer.lines() {
-        let line = line.map_err(|_| LoadError::ReadError)?;
+        let line = line.map_err(|_| OBJLoadError::ReadError)?;
         parse_line(&mut context, line)?;
     }
     context.apply_model()?;
@@ -195,7 +181,7 @@ pub fn load_file(file: &str) -> Result<Vec<Model>, LoadError> {
     Ok(context.models)
 }
 
-fn parse_line(ctx: &mut OBJLoadContext, line: String) -> Result<(), LoadError> {
+fn parse_line(ctx: &mut ParseContext, line: String) -> Result<(), OBJLoadError> {
     let (cmd, args) = {
         let mut words = line.split_ascii_whitespace();
         (words.next(), words.collect::<Vec<&str>>())
@@ -203,15 +189,15 @@ fn parse_line(ctx: &mut OBJLoadContext, line: String) -> Result<(), LoadError> {
 
     match cmd {
         Some("v") if !parse_value::<3>(&mut ctx.pos, &args) => {
-            return Err(LoadError::PositionParseError);
+            return Err(OBJLoadError::PositionParseError);
         }
 
         Some("vn") if !parse_value::<3>(&mut ctx.normal, &args) => {
-            return Err(LoadError::PositionParseError);
+            return Err(OBJLoadError::PositionParseError);
         }
 
         Some("vt") if !parse_value::<2>(&mut ctx.texcoord, &args) => {
-            return Err(LoadError::PositionParseError);
+            return Err(OBJLoadError::PositionParseError);
         }
 
         Some("f") => {
@@ -232,7 +218,7 @@ fn parse_line(ctx: &mut OBJLoadContext, line: String) -> Result<(), LoadError> {
                 ctx.colors.push(gray);
                 ctx.colors.push(gray);
             } else {
-                return Err(LoadError::FaceParseError);
+                return Err(OBJLoadError::FaceParseError);
             }
         }
 
@@ -307,7 +293,7 @@ fn parse_vertex_indice(arg: &str, max_index: [isize; 3]) -> Option<FaceIndex> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum LoadError {
+pub enum OBJLoadError {
     OpenFileFailed,
     ReadError,
     UnrecognizedCharacter,
@@ -324,23 +310,23 @@ pub enum LoadError {
     GenericFailure,
 }
 
-impl Display for LoadError {
+impl Display for OBJLoadError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let data = match *self {
-            LoadError::OpenFileFailed => "fail to open file",
-            LoadError::ReadError => "read error",
-            LoadError::UnrecognizedCharacter => "unrecognized char",
-            LoadError::PositionParseError => "position parse error",
-            LoadError::NormalParseError => "normal parse error",
-            LoadError::TexcoordParseError => "texture parse error",
-            LoadError::FaceParseError => "face parse error",
-            LoadError::InvalidObjectName => "invalid object name",
-            LoadError::InvalidPolygon => "invalid polygone",
-            LoadError::FaceVertexOutOfBounds => "vertex index out of bound",
-            LoadError::FaceTexCoordOutOfBounds => "texture index out of bound",
-            LoadError::FaceNormalOutOfBounds => "normal index out of bound",
-            LoadError::FaceColorOutOfBounds => "color index out of bound",
-            LoadError::GenericFailure => "some error but i dont know",
+            OBJLoadError::OpenFileFailed => "fail to open file",
+            OBJLoadError::ReadError => "read error",
+            OBJLoadError::UnrecognizedCharacter => "unrecognized char",
+            OBJLoadError::PositionParseError => "position parse error",
+            OBJLoadError::NormalParseError => "normal parse error",
+            OBJLoadError::TexcoordParseError => "texture parse error",
+            OBJLoadError::FaceParseError => "face parse error",
+            OBJLoadError::InvalidObjectName => "invalid object name",
+            OBJLoadError::InvalidPolygon => "invalid polygone",
+            OBJLoadError::FaceVertexOutOfBounds => "vertex index out of bound",
+            OBJLoadError::FaceTexCoordOutOfBounds => "texture index out of bound",
+            OBJLoadError::FaceNormalOutOfBounds => "normal index out of bound",
+            OBJLoadError::FaceColorOutOfBounds => "color index out of bound",
+            OBJLoadError::GenericFailure => "some error but i dont know",
         };
         f.write_str(data)
     }

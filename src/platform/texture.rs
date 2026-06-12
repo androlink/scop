@@ -18,27 +18,21 @@ impl Texture {
     pub fn bind(&self) {
         unsafe { gl::BindTexture(gl::TEXTURE_2D, self.0) };
     }
-    pub fn generate(&self, width: i32, height: i32, data: &[u8]) {
+    pub fn generate(&self, width: u32, height: u32, data: &[u8]) {
         self.bind();
         unsafe { gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as _) };
         unsafe { gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as _) };
-        unsafe {
-            gl::TexParameteri(
-                gl::TEXTURE_2D,
-                gl::TEXTURE_MIN_FILTER,
-                gl::LINEAR_MIPMAP_LINEAR as _,
-            )
-        };
-        unsafe { gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as _) };
+        unsafe { gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as _) };
+        unsafe { gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as _) };
         unsafe {
             gl::TexImage2D(
                 gl::TEXTURE_2D,
                 0,
                 gl::RGB as _,
-                width,
-                height,
+                width as _,
+                height as _,
                 0,
-                gl::RGB,
+                gl::RGBA,
                 gl::UNSIGNED_BYTE,
                 data.as_ptr() as _,
             )

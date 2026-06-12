@@ -1,7 +1,11 @@
 use std::ffi::{CStr, CString};
 
 use crate::{
-    platform::location::{AttributeLocation, F32Location, MatrixLocation},
+    mat4::Matrix4,
+    platform::{
+        Bind,
+        location::{AttributeLocation, F32Location, MatrixLocation},
+    },
     shader::GLShader,
 };
 
@@ -21,6 +25,16 @@ pub enum ProgramError {
 impl Default for ShaderProgram {
     fn default() -> Self {
         Self(0)
+    }
+}
+
+impl Bind for ShaderProgram {
+    fn bind(&self) {
+        unsafe { gl::UseProgram(self.0) };
+    }
+
+    fn unbind(&self) {
+        unsafe { gl::UseProgram(0) };
     }
 }
 
@@ -45,14 +59,6 @@ impl ShaderProgram {
             .detach_shader(&frag_shader)
             .detach_shader(&vert_shader);
         Ok(program)
-    }
-
-    pub fn bind(&self) {
-        unsafe { gl::UseProgram(self.0) };
-    }
-
-    pub fn unbind(&self) {
-        unsafe { gl::UseProgram(0) };
     }
 
     pub fn new() -> Result<Self, String> {
@@ -123,5 +129,27 @@ impl ShaderProgram {
         } else {
             Ok(F32Location(loc))
         }
+    }
+
+    pub fn set_float1(&self, loc_name: &CStr, value: &f32) -> Result<(), ProgramError> {
+        let loc = self.get_float_location(loc_name)?;
+        loc.set1(*value);
+        Ok(())
+    }
+    pub fn set_float2(
+        &self,
+        loc_name: &CStr,
+        value1: f32,
+        value2: f32,
+    ) -> Result<(), ProgramError> {
+        let loc = self.get_float_location(loc_name)?;
+        loc.set2(value1, value2);
+        Ok(())
+    }
+
+    pub fn set_matrix(&self, loc_name: &CStr, value: &Matrix4) -> Result<(), ProgramError> {
+        let loc = self.get_matrix_location(loc_name)?;
+        loc.set(value);
+        Ok(())
     }
 }
