@@ -1,6 +1,5 @@
 mod app;
 mod assets;
-mod bmp;
 mod context;
 mod graphics;
 mod manager;
@@ -9,19 +8,13 @@ mod platform;
 
 mod rendering;
 
-use gl::MemoryBarrier;
 use platform::*;
-use std::{
-    ffi::CString,
-    thread::sleep,
-    time::{Duration, Instant},
-};
+use std::time::Instant;
 
 use crate::{
     app::App,
     assets::{asset_manager::Assets, texture::bmp_loader::load_bmp},
     mat4::Matrix4,
-    platform::buffer::*,
 };
 
 use sdl2::{event::WindowEvent, keyboard::Keycode, *};
