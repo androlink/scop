@@ -60,6 +60,10 @@ impl Assets {
         self.models.get(name)
     }
 
+    pub fn load_texture(&mut self, textures_name: &str) -> Result<(), String> {
+        todo!()
+    }
+
     // pub fn load_textures(&mut self, textures_name: &[&str]) -> Result<(), String> {
     //     Ok(())
     // }

@@ -1,10 +1,13 @@
 mod app;
 mod assets;
 mod bmp;
+mod context;
 mod graphics;
 mod manager;
 mod mat4;
 mod platform;
+
+mod rendering;
 
 use gl::MemoryBarrier;
 use platform::*;
