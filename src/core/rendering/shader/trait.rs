@@ -1,31 +1,15 @@
-pub mod f32_location;
-pub mod i32_location;
-pub mod load;
-pub mod matrix_location;
-pub mod u32_location;
+use crate::core::r#trait::bind::Bindable;
 
-use crate::rendering::bind::Bindable;
-use crate::rendering::bind::bind;
+use super::Shader;
 
-trait GetUniform {
+pub trait GetUniform {
     fn get_location(&self, name: &str) -> Option<gl::types::GLint>;
 }
 
-trait SetUniform<T>: GetUniform {
+pub trait SetUniform<T>: GetUniform {
     type Output;
     fn set_location(&self, name: &str, var: T) -> Self::Output;
 }
-
-pub fn loadShader() -> Option<Shader> {
-    todo!();
-}
-
-pub fn shader(shader: &Shader, kind: u32) {
-    bind(shader);
-}
-
-#[derive(Debug, Default)]
-pub struct Shader(pub gl::types::GLuint);
 
 impl GetUniform for Shader {
     fn get_location(&self, name: &str) -> Option<gl::types::GLint> {

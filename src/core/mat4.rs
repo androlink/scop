@@ -1,7 +1,4 @@
-use std::{
-    fmt::{Display, write},
-    ops::Mul,
-};
+use std::ops::Mul;
 
 #[derive(Clone, Debug, Default)]
 pub struct Vec3 {

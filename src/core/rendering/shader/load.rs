@@ -1,6 +1,6 @@
-use std::{fs::read_to_string, path::Path};
+use std::fs::read_to_string;
 
-use crate::rendering::shader::Shader;
+use super::Shader;
 
 impl Shader {
     pub fn new(fragment: &str, vertex: &str) -> Option<Self> {

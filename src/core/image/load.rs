@@ -3,7 +3,7 @@ use std::{
     io::{BufReader, Read},
 };
 
-use crate::rendering::image::Texture;
+use super::Image;
 
 #[derive(Default)]
 struct BMPHeader {
@@ -26,7 +26,7 @@ struct ParseContext {
     header_info: BMPHeaderInfo,
 }
 
-pub fn load_bmp(bmp_file: &str) -> Option<Texture> {
+pub fn load_bmp(bmp_file: &str) -> Option<Image> {
     let file = File::open(bmp_file)
         .inspect_err(|e| eprintln!("{e}"))
         .ok()?;
@@ -46,7 +46,7 @@ pub fn load_bmp(bmp_file: &str) -> Option<Texture> {
         None?
     };
 
-    Some(Texture {
+    Some(Image {
         data: img_data.to_vec(),
         width: header_info.width,
         height: header_info.height,
