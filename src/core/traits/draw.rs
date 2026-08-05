@@ -1,4 +1,4 @@
-fn draw(value: &impl Drawable) {
+pub fn draw(value: &impl Drawable) {
     value.draw();
 }
 

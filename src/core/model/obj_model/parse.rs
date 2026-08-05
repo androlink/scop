@@ -4,6 +4,9 @@ use std::{
     mem,
 };
 
+use rand::random;
+use sdl2::libc::rand;
+
 use crate::core::{
     model::{
         obj_model::{
@@ -34,7 +37,7 @@ impl ParseContext {
             vertex_list: vec![VertexCoord::default()],
             texture_list: vec![VertexTexture::default()],
             normal_list: vec![VertexNormal::default()],
-            color_list: vec![VertexColor::default()],
+            color_list: vec![[1., 1., 1., 1.].into()],
             ..Default::default()
         }
     }
@@ -54,6 +57,7 @@ impl Loader<BufReader<File>> for OBJLoader {
             verticles: ctx.vertex_list,
             normals: ctx.normal_list,
             textures: ctx.texture_list,
+            colors: ctx.color_list,
             meshes: ctx
                 .meshes
                 .iter()
@@ -89,6 +93,7 @@ impl ParseContext {
             ["usemtl", _name] => {}
             ["mtllib", _file] => {}
             ["#", ..] | [] => {} // comment/blank
+            [] => {}
             _ => {}
         }
         Ok(())
@@ -147,6 +152,8 @@ impl ParseContext {
     }
 
     fn parse_face(&mut self, args: &[&str]) -> Result<(), OBJLoadError> {
+        let gray = rand::random::<f32>() % 1.;
+        self.color_list.push([gray, gray, gray, 1.].into());
         let parse_face_vertex = |arg: &str| {
             let values = arg
                 .split("/")
@@ -159,6 +166,7 @@ impl ParseContext {
                 })
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|_| OBJLoadError::InvalidInteger)?;
+
             if let [v, t, n] = values.as_slice() {
                 let v = if *v < 0 {
                     *v + self.vertex_list.len() as i32
@@ -175,7 +183,7 @@ impl ParseContext {
                 } else {
                     *n
                 };
-                Ok(FaceVertex::new(v, t, n, 0))
+                Ok(FaceVertex::new(v, t, n, self.color_list.len() as i32 - 1))
             } else {
                 Err(OBJLoadError::InvalidFace)
             }
@@ -194,12 +202,10 @@ impl ParseContext {
             }
             Ok(triangle)
         }
-
         let face = args
             .iter()
             .map(|arg| parse_face_vertex(arg))
             .collect::<Result<Vec<_>, _>>()?;
-
         self.face_list.append(&mut triangulate_face(&face)?);
         Ok(())
     }

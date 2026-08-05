@@ -1,14 +1,14 @@
 use std::ops::Sub;
 
-use crate::core::model::obj_model::types::vector::{Vec3, Vector};
+use crate::core::types::vector::{Vec3, Vector};
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
-struct Matrix<const N: usize, const M: usize>(pub [Vector<N>; M]);
+pub struct Matrix<const N: usize, const M: usize>(pub [Vector<N>; M]);
 
-type Mat2 = Matrix<2, 2>;
-type Mat3 = Matrix<3, 3>;
-type Mat4 = Matrix<4, 4>;
+pub type Mat2 = Matrix<2, 2>;
+pub type Mat3 = Matrix<3, 3>;
+pub type Mat4 = Matrix<4, 4>;
 
 impl<const N: usize, const M: usize> From<[[f32; N]; M]> for Matrix<N, M> {
     fn from(value: [[f32; N]; M]) -> Self {
@@ -19,6 +19,12 @@ impl<const N: usize, const M: usize> From<[[f32; N]; M]> for Matrix<N, M> {
 impl<const N: usize, const M: usize> Default for Matrix<N, M> {
     fn default() -> Self {
         [[0.; N]; M].into()
+    }
+}
+
+impl<const N: usize, const M: usize> From<Matrix<N, M>> for [[f32; N]; M] {
+    fn from(val: Matrix<N, M>) -> Self {
+        val.0.map(|v| v.into())
     }
 }
 

@@ -1,13 +1,26 @@
 use std::mem::offset_of;
 
 use crate::core::{
-    model::types::{Mesh, Vertex},
+    model::types::{Mesh, Model, Vertex},
     rendering::{
         buffer::{EBO, VBO},
-        shape_opengl::GLMesh,
+        shape_opengl::types::{GLMesh, GLModel},
         vertex_array::VertexArray,
     },
+    traits::draw::Drawable,
 };
+
+impl GLModel {
+    pub fn new(model: &Model) -> Result<Self, String> {
+        Ok(Self {
+            meshes: model
+                .meshes
+                .iter()
+                .map(GLMesh::new)
+                .collect::<Result<_, _>>()?,
+        })
+    }
+}
 
 impl GLMesh {
     pub fn new(mesh: &Mesh) -> Result<Self, String> {
@@ -21,7 +34,14 @@ impl GLMesh {
 
         unsafe { gl::EnableVertexAttribArray(0) };
         unsafe {
-            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, size_of::<Vertex>() as _, 0 as _)
+            gl::VertexAttribPointer(
+                0,
+                4,
+                gl::FLOAT,
+                gl::FALSE,
+                size_of::<Vertex>() as _,
+                offset_of!(Vertex, position) as _,
+            )
         };
         unsafe { gl::EnableVertexAttribArray(1) };
         unsafe {
@@ -38,7 +58,7 @@ impl GLMesh {
         unsafe {
             gl::VertexAttribPointer(
                 2,
-                2,
+                3,
                 gl::FLOAT,
                 gl::FALSE,
                 size_of::<Vertex>() as _,
@@ -50,7 +70,7 @@ impl GLMesh {
         unsafe {
             gl::VertexAttribPointer(
                 3,
-                3,
+                4,
                 gl::FLOAT,
                 gl::FALSE,
                 size_of::<Vertex>() as _,
@@ -67,10 +87,19 @@ impl GLMesh {
             index_count: mesh.indices.len() as _,
         })
     }
+}
 
-    pub fn draw(&self) {
+impl Drawable for GLModel {
+    fn draw(&self) {
+        self.meshes.iter().for_each(|f| f.draw());
+    }
+}
+
+impl Drawable for GLMesh {
+    fn draw(&self) {
         self.vao.bind();
         self.ebo.draw(gl::TRIANGLES, self.index_count);
         self.vao.unbind();
+        // eprintln!("draw mesh {}", self.index_count);
     }
 }

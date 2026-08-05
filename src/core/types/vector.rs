@@ -14,6 +14,12 @@ impl<const N: usize> From<[f32; N]> for Vector<N> {
     }
 }
 
+impl<const N: usize> From<Vector<N>> for [f32; N] {
+    fn from(val: Vector<N>) -> Self {
+        val.0
+    }
+}
+
 impl<const N: usize> Default for Vector<N> {
     fn default() -> Self {
         [0.; N].into()

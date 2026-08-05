@@ -1,6 +1,6 @@
 pub mod load;
 
-mod r#trait;
+pub mod r#trait;
 
 pub mod f32_location;
 pub mod i32_location;

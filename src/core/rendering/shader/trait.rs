@@ -1,3 +1,5 @@
+use std::ffi::CString;
+
 use crate::core::traits::bind::Bindable;
 
 use super::Shader;
@@ -13,7 +15,8 @@ pub trait SetUniform<T>: GetUniform {
 
 impl GetUniform for Shader {
     fn get_location(&self, name: &str) -> Option<gl::types::GLint> {
-        let loc = unsafe { gl::GetUniformLocation(self.0, name.as_ptr() as _) };
+        let c_name = CString::new(name).ok()?;
+        let loc = unsafe { gl::GetUniformLocation(self.0, c_name.as_ptr()) };
         if loc < 0 {
             eprintln!("location name not found: {name}");
             None

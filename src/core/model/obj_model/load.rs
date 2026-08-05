@@ -31,7 +31,7 @@ impl Display for OBJLoadError {
             OBJLoadError::InvalidFloat => "invalid float".into(),
             OBJLoadError::InvalidInteger => "invalid integer".into(),
             OBJLoadError::MissingField => "missing field".into(),
-            OBJLoadError::InvalidFace => "invalide face".into(),
+            OBJLoadError::InvalidFace => "invalid face".into(),
             OBJLoadError::UnknownKeyword(k) => format!("unknown keyword: '{k}'"),
             OBJLoadError::Io(error) => format!("io error: {error}"),
         };

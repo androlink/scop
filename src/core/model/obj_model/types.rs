@@ -1,7 +1,4 @@
-use crate::core::model::types::{VertexCoord, VertexNormal, VertexTexture};
-
-pub mod matrix;
-pub mod vector;
+use crate::core::model::types::{VertexColor, VertexCoord, VertexNormal, VertexTexture};
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Material();
@@ -30,6 +27,7 @@ pub struct OBJModel {
     pub verticles: Vec<VertexCoord>,
     pub normals: Vec<VertexNormal>,
     pub textures: Vec<VertexTexture>,
+    pub colors: Vec<VertexColor>,
     pub meshes: Vec<OBJMesh>,
 }
 
