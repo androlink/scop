@@ -1,4 +1,4 @@
-use crate::core::{rendering::texture::Texture, r#trait::bind::Bindable};
+use crate::core::{rendering::texture::Texture, traits::bind::Bindable};
 
 impl Texture {
     pub fn new() -> Option<Self> {

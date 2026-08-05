@@ -8,7 +8,7 @@ pub mod matrix_location;
 pub mod u32_location;
 
 use self::r#trait::*;
-use crate::core::r#trait::bind::bind;
+use crate::core::traits::bind::bind;
 
 pub fn load_shader(frag: &str, vert: &str) -> Option<Shader> {
     Shader::new(frag, vert)

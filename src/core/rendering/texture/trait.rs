@@ -1,5 +1,5 @@
 use super::Texture;
-use crate::core::r#trait::bind::Bindable;
+use crate::core::traits::bind::Bindable;
 
 impl Bindable for Texture {
     fn bind(&self) {

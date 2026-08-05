@@ -1,4 +1,4 @@
-use crate::core::r#trait::bind::Bindable;
+use crate::core::traits::bind::Bindable;
 
 use super::Shader;
 

@@ -1,22 +1,22 @@
 use std::mem::offset_of;
 
 use crate::core::{
+    model::types::{Mesh, Vertex},
     rendering::{
         buffer::{EBO, VBO},
-        shape_opengl::ShapeOpengl,
+        shape_opengl::GLMesh,
         vertex_array::VertexArray,
     },
-    shape::shape_obj::{ShapeOBJ, Vertex},
 };
 
-impl ShapeOpengl {
-    pub fn new(mesh: &ShapeOBJ) -> Result<Self, String> {
+impl GLMesh {
+    pub fn new(mesh: &Mesh) -> Result<Self, String> {
         let vao = VertexArray::new()?;
         let vbo = VBO::new()?;
         let ebo = EBO::new()?;
 
         vao.bind();
-        vbo.data(&mesh.verticles, gl::STATIC_DRAW);
+        vbo.data(&mesh.vertices, gl::STATIC_DRAW);
         ebo.data(&mesh.indices, gl::STATIC_DRAW);
 
         unsafe { gl::EnableVertexAttribArray(0) };

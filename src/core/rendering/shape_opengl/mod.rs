@@ -3,11 +3,15 @@ use crate::core::rendering::{
     vertex_array::VertexArray,
 };
 
-pub mod mesh;
+pub mod gl_mesh;
 
-pub struct ShapeOpengl {
+pub struct GLMesh {
     pub vao: VertexArray,
     pub vbo: VBO,
     pub ebo: EBO,
     pub index_count: i32,
+}
+
+pub struct GLModel {
+    meshes: Vec<GLMesh>,
 }
