@@ -166,27 +166,29 @@ impl ParseContext {
                 })
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|_| OBJLoadError::InvalidInteger)?;
-
-            if let [v, t, n] = values.as_slice() {
-                let v = if *v < 0 {
-                    *v + self.vertex_list.len() as i32
-                } else {
-                    *v
-                };
-                let t = if *t < 0 {
-                    *t + self.texture_list.len() as i32
-                } else {
-                    *t
-                };
-                let n = if *n < 0 {
-                    *n + self.normal_list.len() as i32
-                } else {
-                    *n
-                };
-                Ok(FaceVertex::new(v, t, n, self.color_list.len() as i32 - 1))
+            let values = match values.as_slice() {
+                [v] => Ok([*v, 0, 0]),
+                [v, t] => Ok([*v, *t, 0]),
+                [v, t, n] => Ok([*v, *t, *n]),
+                _ => Err(OBJLoadError::InvalidFace),
+            }?;
+            let [v, t, n] = values;
+            let v = if v < 0 {
+                v + self.vertex_list.len() as i32
             } else {
-                Err(OBJLoadError::InvalidFace)
-            }
+                v
+            };
+            let t = if t < 0 {
+                t + self.texture_list.len() as i32
+            } else {
+                t
+            };
+            let n = if n < 0 {
+                n + self.normal_list.len() as i32
+            } else {
+                n
+            };
+            Ok(FaceVertex::new(v, t, n, self.color_list.len() as i32 - 1))
         };
 
         fn triangulate_face(face: &[FaceVertex]) -> Result<Vec<Face>, OBJLoadError> {

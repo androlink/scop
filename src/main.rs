@@ -17,7 +17,7 @@ use sdl2::{event::WindowEvent, keyboard::Keycode, *};
 
 fn main() -> Result<(), String> {
     let mut platform = Platform::new().unwrap();
-    let model = OBJLoader.load("./assets/model/bugatti.obj").unwrap();
+    let model = OBJLoader.load("./assets/model/42.obj").unwrap();
     println!("{model:?}");
     let model: Model = model.try_into().unwrap();
     println!("{model:?}");
