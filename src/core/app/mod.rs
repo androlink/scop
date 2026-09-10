@@ -1,11 +1,30 @@
-pub struct App<T: Context> {
-    context_handler: Option<T>,
-}
+pub struct App {}
 
-impl<T: Context> App<T> {
+impl App {
     pub fn new() -> Result<Self, String> {
         todo!()
     }
+    fn add_plugin<P: Plugin>(mut self, plugin: P) {
+        plugin.build(&mut self);
+    }
+
+    fn run(&self) {}
+}
+
+trait Plugin {
+    fn build(&self, app: &mut App);
+}
+
+struct TestPlugin;
+
+impl Plugin for TestPlugin {
+    fn build(&self, _app: &mut App) {
+        println!("test");
+    }
+}
+
+fn test() {
+    App::new().unwrap().add_plugin(TestPlugin);
 }
 
 pub trait Context {

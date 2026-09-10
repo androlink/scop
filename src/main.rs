@@ -29,7 +29,7 @@ fn main() -> Result<(), String> {
     .unwrap();
 
     let view = Mat4::look_at(
-        &[0., 10., 10.].into(),
+        &[10., 10., 10.].into(),
         &[00., 00., 00.].into(),
         &[0., 1., 0.].into(),
     );
