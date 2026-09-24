@@ -1,6 +1,6 @@
 /target
 en.subject.pdf
-./assets/
+assets/
 resources/
 resources.tgz
 Cargo.lock
