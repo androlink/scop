@@ -1,8 +1,8 @@
 /target
 en.subject.pdf
+./assets/*
 resources/
 resources.tgz
 Cargo.lock
 
 .*
-orga.gpt.md

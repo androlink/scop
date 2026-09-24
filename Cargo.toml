@@ -3,7 +3,12 @@ name = "scop"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
-gl = "0.14.0"
-rand = "0.10.1"
-sdl2 = "0.38.0"
+[workspace]
+resolver = "3"
+
+members = [
+    "crates/core",
+    "crates/graphics",
+    "crates/image",
+    "crates/model",
+]
