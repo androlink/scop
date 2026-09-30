@@ -8,7 +8,11 @@ resolver = "3"
 
 members = [
     "crates/core",
-    "crates/graphics",
+    "crates/vulkan",
     "crates/image",
     "crates/model",
 ]
+
+[dependencies]
+winit = "0.29"
+vulkan = {path= "./crates/vulkan"}

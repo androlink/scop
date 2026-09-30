@@ -1,0 +1,8 @@
+[package]
+name = "vulkan"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+vulkanalia = {version= "0.35.0", features = ["libloading", "provisional", "window"] }
+winit = "0.29"
