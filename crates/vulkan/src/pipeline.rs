@@ -5,3 +5,9 @@ pub struct PipelineState {
     pub pipeline_layout: vk::PipelineLayout,
     pub pipeline: vk::Pipeline,
 }
+
+impl PipelineState {
+    pub fn new() -> Self {
+        todo!()
+    }
+}

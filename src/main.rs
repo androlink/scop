@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use vulkan::graphic;
+use vulkan::VulkanApp;
 use winit::{
     dpi::LogicalSize,
     event::{Event, WindowEvent},
@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .with_inner_size(LogicalSize::new(1024, 768))
         .build(&event_loop)?;
 
-    let vk_graphic = graphic::VulkanApp::init(&window);
+    let vk_graphic = VulkanApp::new(&window);
 
     event_loop.run(move |event, elwt| {
         match event {
