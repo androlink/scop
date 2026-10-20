@@ -118,7 +118,7 @@ pub fn logical_device(
     } else {
         vec![]
     };
-    let mut _extensions = vec![];
+    let mut extensions = vec![vk::KHR_SWAPCHAIN_EXTENSION.name.as_ptr()];
     let features = vk::PhysicalDeviceFeatures::builder();
     let mut unique_indices = HashSet::new();
     unique_indices.insert(indices.graphics);
@@ -136,7 +136,7 @@ pub fn logical_device(
     let info = vk::DeviceCreateInfo::builder()
         .queue_create_infos(&queue_infos)
         .enabled_layer_names(&layers)
-        .enabled_extension_names(&_extensions)
+        .enabled_extension_names(&extensions)
         .enabled_features(&features);
     let device = unsafe { instance.create_device(physical_device, &info, None) }?;
     Ok(device)

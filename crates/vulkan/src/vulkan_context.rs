@@ -27,14 +27,23 @@ pub struct VulkanContext {
 impl VulkanContext {
     pub fn new(window: &Window) -> UError<Self> {
         let loader = unsafe { LibloadingLoader::new(LIBRARY) }?;
+        println!("vulkancontext: loader finish");
         let entry = unsafe { Entry::new(loader).map_err(|b| b.to_string()) }?;
+        println!("vulkancontext: entry finish");
         let instance = instance(window, &entry)?;
+        println!("vulkancontext: instance finish");
         let surface = surface(&instance, window)?;
+        println!("vulkancontext: surface finish");
         let physical_device = physical_device(&instance, surface)?;
+        println!("vulkancontext: physical_device finish");
         let indices = QueueFamilyIndices::get(&instance, physical_device, surface)?;
+        println!("vulkancontext: indices finish");
         let device = logical_device(&instance, physical_device, &indices)?;
+        println!("vulkancontext: device finish");
         let graphics_queue = graphics_queue(&device, &indices)?;
+        println!("vulkancontext: graphics_queue finish");
         let present_queue = present_queue(&device, &indices)?;
+        println!("vulkancontext: present_queue finish");
         Ok(Self {
             entry,
             instance,
