@@ -3,7 +3,7 @@ use std::{collections::HashSet, error::Error, ffi::CStr, os::raw::c_void};
 use vulkanalia::{
     Device, Entry, Instance,
     loader::{LIBRARY, LibloadingLoader},
-    vk::{self, InstanceV1_0},
+    vk::{self, DeviceV1_0, InstanceV1_0, KhrSurfaceExtensionInstanceCommands},
 };
 use winit::window::Window;
 
@@ -22,6 +22,14 @@ pub struct VulkanContext {
     pub device: Device,
     pub graphics_queue: vk::Queue,
     pub present_queue: vk::Queue,
+}
+
+impl VulkanContext {
+    pub fn destroy(&mut self) {
+        unsafe { self.instance.destroy_surface_khr(self.surface, None) };
+        unsafe { self.device.destroy_device(None) };
+        unsafe { self.instance.destroy_instance(None) };
+    }
 }
 
 impl VulkanContext {
@@ -52,11 +60,5 @@ impl VulkanContext {
             graphics_queue,
             present_queue,
         })
-    }
-}
-
-impl Drop for VulkanContext {
-    fn drop(&mut self) {
-        unsafe { self.instance.destroy_instance(None) };
     }
 }

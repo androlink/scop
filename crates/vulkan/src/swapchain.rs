@@ -19,6 +19,17 @@ pub struct SwapchainState {
 }
 
 impl SwapchainState {
+    pub fn destroy(&mut self, device: &Device) {
+        for &view in &self.image_views {
+            unsafe { device.destroy_image_view(view, None) };
+        }
+
+        // Swapchain.
+        unsafe { device.destroy_swapchain_khr(self.swapchain, None) };
+    }
+}
+
+impl SwapchainState {
     pub fn new(window: &Window, context: &VulkanContext) -> UError<Self> {
         let indices = QueueFamilyIndices::get(
             &context.instance,

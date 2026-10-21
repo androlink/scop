@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .with_inner_size(LogicalSize::new(1024, 768))
         .build(&event_loop)?;
 
-    let app = VulkanApp::new(&window)?;
+    let mut app = VulkanApp::new(&window)?;
 
     event_loop.run(move |event, elwt| {
         match event {
@@ -33,5 +33,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             _ => {}
         }
     })?;
+
+    app.destroy();
     Ok(())
 }

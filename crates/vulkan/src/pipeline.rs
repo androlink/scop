@@ -12,6 +12,16 @@ pub struct PipelineState {
 }
 
 impl PipelineState {
+    pub fn destroy(&mut self, device: &Device) {
+        unsafe { device.destroy_pipeline(self.graphics_pipeline, None) };
+
+        unsafe { device.destroy_pipeline_layout(self.pipeline_layout, None) };
+
+        unsafe { device.destroy_render_pass(self.render_pass, None) };
+    }
+}
+
+impl PipelineState {
     pub fn new(
         device: &Device,
         swapchain_extent: vk::Extent2D,

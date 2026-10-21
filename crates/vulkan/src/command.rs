@@ -1,6 +1,6 @@
 use vulkanalia::{
     Device, Instance,
-    vk::{self, DescriptorUpdateTemplateEntryKHR, DeviceV1_0, HasBuilder},
+    vk::{self, DeviceV1_0, HasBuilder},
 };
 
 use crate::{
@@ -9,9 +9,17 @@ use crate::{
 };
 
 pub struct Command {
-    framebuffers: Vec<vk::Framebuffer>,
-    command_pool: vk::CommandPool,
-    command_buffers: Vec<vk::CommandBuffer>,
+    pub framebuffers: Vec<vk::Framebuffer>,
+    pub command_pool: vk::CommandPool,
+    pub command_buffers: Vec<vk::CommandBuffer>,
+}
+
+impl Command {
+    pub fn destroy(&mut self, device: &Device) {
+        for &framebuffer in &self.framebuffers {
+            unsafe { device.destroy_framebuffer(framebuffer, None) };
+        }
+    }
 }
 
 impl Command {
@@ -41,7 +49,11 @@ impl Command {
             pipeline.graphics_pipeline,
             swapchain.extent,
         )?;
-        todo!()
+        Ok(Self {
+            framebuffers,
+            command_pool,
+            command_buffers,
+        })
     }
 }
 
